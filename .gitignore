@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Environments
+.env
+venv/
+env/
+
+# DSPy caches
+.semantic_cache/
+.evaluation_cache/
+
+# Logs and outputs
+*.csv
+*.log
+dspy_history*.csv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+

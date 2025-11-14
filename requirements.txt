@@ -1,0 +1,14 @@
+dspy
+pandas
+numpy
+matplotlib
+seaborn
+scikit-learn
+tiktoken
+sentence-transformers
+python-dotenv
+scipy
+aiofiles
+diskcache
+
+
