@@ -1,5 +1,5 @@
 """
-Scalpel - Medical Data Extraction Pipeline
+eviStream - Medical Data Extraction Pipeline
 Main entry point for running single or batch extractions
 """
 
@@ -10,13 +10,13 @@ from pathlib import Path
 from collections import defaultdict
 
 from utils.lm_config import *
-from utils.cache_cleaner import *
+from utils.cache_cleaner import clear_cache_directories
 from utils.logging import set_log_file, log_history, show_stats
 from data.loader import *
 from src.extractor import run_async_extraction_and_evaluation
 from src.helpers.visualization import create_performance_dashboards
 
-# Add scalpel to path
+# Add eviStream to path
 sys.path.insert(0, str(Path(__file__).parent))
 
 
@@ -30,13 +30,13 @@ async def run_single_extraction(source_file: str, target_file: str, clear_cache:
         clear_cache: Whether to clear caches before running
     """
     print("="*60)
-    print("SCALPEL - Single Extraction Mode")
+    print("eviStream - Single Extraction Mode")
     print("="*60)
 
     # Optional: clear caches
     if clear_cache:
         print("\nClearing caches...")
-        exec(open('utils/cache_cleaner.py').read())
+        clear_cache_directories(cache_root=str(Path(__file__).parent))
 
     # Set up logging
     set_log_file("dspy_history.csv")
@@ -47,9 +47,9 @@ async def run_single_extraction(source_file: str, target_file: str, clear_cache:
 
     with open(source_file, 'r') as f:
         source_data = json.load(f)
-    markdown_content = source_data['content'] if isinstance(
-        source_data, dict) and 'content' in source_data else str(source_data)
+    markdown_content = source_data.get("marker", {}).get("markdown", "")
 
+    print(markdown_content)
     with open(target_file, 'r') as f:
         target_data = json.load(f)
 
@@ -96,13 +96,13 @@ async def run_batch_extraction(md_dir: str, target_file: str, clear_cache: bool 
         save_dashboards: Whether to save dashboards as PNG files
     """
     print("="*60)
-    print("SCALPEL - Batch Extraction Mode")
+    print("eviStream - Batch Extraction Mode")
     print("="*60)
 
     # Optional: clear caches
     if clear_cache:
         print("\nClearing caches...")
-        exec(open('utils/cache_cleaner.py').read())
+        clear_cache_directories(cache_root=str(Path(__file__).parent))
 
     # Set up logging
     set_log_file("dspy_history_batch.csv")
@@ -226,7 +226,7 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Scalpel - Medical Data Extraction Pipeline")
+        description="eviStream - Medical Data Extraction Pipeline")
     parser.add_argument(
         "mode", choices=["single", "batch"], help="Extraction mode")
     parser.add_argument(

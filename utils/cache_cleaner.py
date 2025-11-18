@@ -1,15 +1,25 @@
-import os
+from pathlib import Path
 import shutil
 
-cache_dir = "./"  # or wherever you set it
+from config import CACHE_DIRS
 
-# Remove cache directories (not files)
-cache_dirs = [".semantic_cache", ".evaluation_cache"]
 
-for cache_name in cache_dirs:
-    cache_path = os.path.join(cache_dir, cache_name)
-    if os.path.exists(cache_path):
-        shutil.rmtree(cache_path)  # ← Use rmtree for directories
-        print(f"Cleared {cache_path}")
-    else:
-        print(f"{cache_path} doesn't exist") 
+def clear_cache_directories(cache_root: str = ".") -> None:
+    """
+    Remove the configured cache directories relative to cache_root.
+
+    Args:
+        cache_root: Base directory that contains the cache folders.
+    """
+    root_path = Path(cache_root).resolve()
+    for cache_dir in CACHE_DIRS:
+        cache_path = (root_path / cache_dir).resolve()
+        if cache_path.exists() and cache_path.is_dir():
+            shutil.rmtree(cache_path)
+            print(f"Cleared {cache_path}")
+        else:
+            print(f"{cache_path} doesn't exist")
+
+
+if __name__ == "__main__":
+    clear_cache_directories()
