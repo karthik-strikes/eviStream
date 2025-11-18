@@ -6,17 +6,21 @@ from pathlib import Path
 from datetime import datetime
 from typing import List, Dict, Any
 
-from config import DEFAULT_OUTPUT_DIR, DEFAULT_CSV_DIR, DEFAULT_JSON_PATH
+from config import DEFAULT_OUTPUT_DIR, DEFAULT_CSV_DIR, DEFAULT_JSON_DIR
 
 
 class AsyncMedicalFileHandler:
     """Async file handler for medical data extraction pipeline."""
 
     def __init__(self, default_output_dir: str = DEFAULT_OUTPUT_DIR, default_csv_dir: str = DEFAULT_CSV_DIR,
-                 default_json_path: str = DEFAULT_JSON_PATH):
+                 default_json_dir: str = DEFAULT_JSON_DIR,
+                 csv_filename: str = "patient_population_evaluation_results.csv",
+                 json_filename: str = "patient_population_evaluation_results.json"):
         self.default_output_dir = default_output_dir
         self.default_csv_dir = default_csv_dir
-        self.default_json_path = default_json_path
+        self.default_json_dir = default_json_dir
+        self.csv_filename = csv_filename
+        self.json_filename = json_filename
 
     def _generate_output_filename(self, source_file_path: str) -> str:
         """Generate output filename from source filename."""
@@ -80,7 +84,7 @@ class AsyncMedicalFileHandler:
         """Save evaluation results to CSV asynchronously using streaming append."""
         csv_dir = csv_dir or self.default_csv_dir
         Path(csv_dir).mkdir(parents=True, exist_ok=True)
-        csv_path = Path(csv_dir) / "patient_population_evaluation_results.csv"
+        csv_path = Path(csv_dir) / self.csv_filename
 
         # Prepare data rows
         rows = []
@@ -173,7 +177,11 @@ class AsyncMedicalFileHandler:
 
     async def save_evaluation_to_json(self, evaluation_results: Dict, source_file: str, json_path: str = None):
         """Save evaluation results to JSON file asynchronously."""
-        json_path = json_path or self.default_json_path
+        if json_path:
+            json_path_obj = Path(json_path)
+        else:
+            json_path_obj = Path(self.default_json_dir) / self.json_filename
+        json_path = str(json_path_obj)
 
         new_entry = {
             "source_file": source_file,
@@ -182,7 +190,6 @@ class AsyncMedicalFileHandler:
         }
 
         # Ensure directory exists
-        json_path_obj = Path(json_path)
         json_path_obj.parent.mkdir(parents=True, exist_ok=True)
 
         # Load existing data or create empty list

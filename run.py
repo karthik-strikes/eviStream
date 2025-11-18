@@ -15,12 +15,13 @@ from utils.logging import set_log_file, log_history, show_stats
 from data.loader import *
 from src.extractor import run_async_extraction_and_evaluation
 from src.helpers.visualization import create_performance_dashboards
+from schemas import get_schema, build_schema_runtime, list_schemas
 
 # Add eviStream to path
 sys.path.insert(0, str(Path(__file__).parent))
 
 
-async def run_single_extraction(source_file: str, target_file: str, clear_cache: bool = False):
+async def run_single_extraction(source_file: str, target_file: str, schema_runtime, clear_cache: bool = False):
     """
     Run extraction on a single file
 
@@ -67,6 +68,7 @@ async def run_single_extraction(source_file: str, target_file: str, clear_cache:
         markdown_content=markdown_content,
         source_file=source_file,
         one_study_records=one_study_records,
+        schema_runtime=schema_runtime,
         override=False,
         run_diagnostic=False,
         print_results=True,
@@ -84,7 +86,7 @@ async def run_single_extraction(source_file: str, target_file: str, clear_cache:
     print("="*60)
 
 
-async def run_batch_extraction(md_dir: str, target_file: str, clear_cache: bool = False, max_examples: int = None, save_dashboards: bool = False):
+async def run_batch_extraction(md_dir: str, target_file: str, schema_runtime, clear_cache: bool = False, max_examples: int = None, save_dashboards: bool = False):
     """
     Run extraction on multiple files
 
@@ -151,6 +153,7 @@ async def run_batch_extraction(md_dir: str, target_file: str, clear_cache: bool 
             markdown_content=markdown_content,
             source_file=source_file,
             one_study_records=ground_truth,
+            schema_runtime=schema_runtime,
             override=False,
             field_level_analysis=True,
             print_field_table=False
@@ -238,21 +241,30 @@ def main():
                         help="Max examples for batch mode")
     parser.add_argument("--save-dashboards", action="store_true",
                         help="Save dashboards as PNG files (default: display interactively)")
+    parser.add_argument("--schema", default="patient_population", choices=list_schemas(),
+                        help="Schema to run (default: patient_population)")
 
     args = parser.parse_args()
 
-    if args.mode == "single":
-        if not args.source or not args.target:
-            print("Error: --source and --target are required for single mode")
-            sys.exit(1)
-        asyncio.run(run_single_extraction(
-            args.source, args.target, args.clear_cache))
-    else:  # batch
-        if not args.source or not args.target:
-            print("Error: --source (directory) and --target are required for batch mode")
-            sys.exit(1)
-        asyncio.run(run_batch_extraction(args.source, args.target,
-                    args.clear_cache, args.max_examples, args.save_dashboards))
+    schema_definition = get_schema(args.schema)
+    schema_runtime = build_schema_runtime(schema_definition)
+
+    try:
+        if args.mode == "single":
+            if not args.source or not args.target:
+                print("Error: --source and --target are required for single mode")
+                sys.exit(1)
+            asyncio.run(run_single_extraction(
+                args.source, args.target, schema_runtime, args.clear_cache))
+        else:  # batch
+            if not args.source or not args.target:
+                print(
+                    "Error: --source (directory) and --target are required for batch mode")
+                sys.exit(1)
+            asyncio.run(run_batch_extraction(args.source, args.target,
+                        schema_runtime, args.clear_cache, args.max_examples, args.save_dashboards))
+    finally:
+        schema_runtime.close()
 
 
 if __name__ == "__main__":

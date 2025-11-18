@@ -1,14 +1,15 @@
 import dspy
 import json
 import random
-from typing import Tuple, List, Dict
+from pathlib import Path
+from typing import Tuple, List, Dict, Optional
 
 from ..dspy_components.utility_signatures import ExtractFieldsFromSchema
 from ..dspy_components.signatures import CombinePatientPopulationCharacteristics
 from ..utils.json_parser import safe_json_parse
 
 
-def sample_json_records(target_file: str, max_samples: int = 5) -> str:
+def sample_json_records(target_file: Optional[str], max_samples: int = 5) -> str:
     """
     Load a JSON file and return up to `max_samples` random records as a formatted JSON string.
     Parameters:
@@ -17,7 +18,14 @@ def sample_json_records(target_file: str, max_samples: int = 5) -> str:
     Returns:
         str: Formatted JSON string of sampled records.
     """
-    with open(target_file, 'r') as f:
+    if not target_file:
+        return "[]"
+
+    target_path = Path(target_file)
+    if not target_path.exists():
+        return "[]"
+
+    with target_path.open('r') as f:
         data = json.load(f)
 
     if isinstance(data, list):
@@ -34,7 +42,10 @@ def sample_json_records(target_file: str, max_samples: int = 5) -> str:
 # DSPy Signature for Auto-Extracting Fields from Schema
 
 
-def extract_fields_from_signature(signature_class, target_file: str, verbose: bool = True) -> Tuple[List[str], List[str], List[str], Dict]:
+def extract_fields_from_signature(signature_class,
+                                  target_file: Optional[str] = None,
+                                  output_field_name: str = "complete_characteristics_json",
+                                  verbose: bool = True) -> Tuple[List[str], List[str], List[str], Dict]:
     """
     Use DSPy to automatically extract and classify fields from a signature.
 
@@ -47,8 +58,14 @@ def extract_fields_from_signature(signature_class, target_file: str, verbose: bo
         tuple: (required_fields, semantic_fields, exact_fields, groupable_patterns)
     """
     # Get schema description from the signature (proper DSPy field access)
-    schema_desc = signature_class.model_fields['complete_characteristics_json'].json_schema_extra.get(
-        'desc', '')
+    try:
+        field_metadata = signature_class.model_fields[output_field_name]
+    except KeyError as exc:
+        raise ValueError(
+            f"Signature {signature_class.__name__} does not define output field '{output_field_name}'."
+        ) from exc
+
+    schema_desc = field_metadata.json_schema_extra.get('desc', '')
 
     # Use DSPy to parse and classify fields
     extractor = dspy.ChainOfThought(ExtractFieldsFromSchema)

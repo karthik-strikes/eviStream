@@ -2,17 +2,15 @@ import asyncio
 import json
 import traceback
 from typing import Dict, List, Any
-from src.evaluation import AsyncMedicalExtractionEvaluator
-from src.file_handler import AsyncMedicalFileHandler
 from src.helpers.print_helpers import print_extracted_vs_ground_truth, print_field_level_table, print_evaluation_summary, flatten_json
-from dspy_components.modules import AsyncPatientPopulationCharacteristicsPipeline
-from config import REQUIRED_FIELD, SEMANTIC_FIELD, EXACT_FIELD, GROUPABLE_PATTERN
+from schemas.runtime import SchemaRuntime
 
 
 async def run_async_extraction_and_evaluation(
     markdown_content: str,
     source_file: str,
     one_study_records: List[Dict],
+    schema_runtime: SchemaRuntime,
     override: bool = False,
     run_diagnostic: bool = False,
     print_results: bool = False,
@@ -28,16 +26,9 @@ async def run_async_extraction_and_evaluation(
     """
 
     try:
-        async_pipeline = AsyncPatientPopulationCharacteristicsPipeline()
-        async_evaluator = AsyncMedicalExtractionEvaluator(
-            required_fields=REQUIRED_FIELD,
-            semantic_fields=SEMANTIC_FIELD,
-            exact_fields=EXACT_FIELD,
-            groupable_patterns=GROUPABLE_PATTERN,
-            use_semantic=True,
-            max_concurrent=10
-        )
-        file_handler = AsyncMedicalFileHandler()
+        async_pipeline = schema_runtime.pipeline
+        async_evaluator = schema_runtime.evaluator
+        file_handler = schema_runtime.file_handler
 
         # ---- 1️⃣ Extract ----
         baseline_prediction = await async_pipeline(markdown_content)
@@ -123,6 +114,3 @@ async def run_async_extraction_and_evaluation(
     except Exception as e:
         print(f"❌ Error in async extraction: {e}")
         traceback.print_exc()
-
-    finally:
-        async_evaluator.close()
