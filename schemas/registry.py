@@ -1,10 +1,12 @@
 from typing import Dict, List
 
 from .patient_population import PATIENT_POPULATION_SCHEMA
+from .index_test import INDEX_TEST_SCHEMA
 from .base import SchemaDefinition
 
 _SCHEMA_REGISTRY: Dict[str, SchemaDefinition] = {
     "patient_population": PATIENT_POPULATION_SCHEMA,
+    "index_test": INDEX_TEST_SCHEMA,
 }
 
 

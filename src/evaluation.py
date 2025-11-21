@@ -1,4 +1,5 @@
 import dspy
+import math
 import asyncio
 import json
 import re
@@ -14,44 +15,62 @@ from dspy_components.utility_signatures import SemanticMatcher
 from config import EVALUATION_MODEL, EVALUATION_TEMPERATURE
 
 
+from src.field_extractor import extract_fields_from_signature
+from pathlib import Path
+
 class AsyncMedicalExtractionEvaluator:
     """Async evaluator for medical data extraction with DSPy-based semantic matching and caching."""
 
     def __init__(self,
-                 required_fields: List[str],
-                 semantic_fields: List[str],
-                 exact_fields: List[str],
+                 signature_class: Any = None,
+                 output_field_name: str = None,
+                 field_cache_file: str = None,
+                 target_file: str = None,
+                 required_fields: List[str] = None,
+                 semantic_fields: List[str] = None,
+                 exact_fields: List[str] = None,
                  groupable_patterns: Dict[str, Dict] = None,
                  use_semantic: bool = True,
                  max_concurrent: int = 10,
                  cache_dir: str = "."):
         """
-        Initialize evaluator with user-defined fields.
+        Initialize evaluator. Can be initialized either with direct field lists OR
+        with signature_class + cache config to auto-load fields.
 
         Args:
-            required_fields: All fields that must be evaluated
-            semantic_fields: Fields to compare using semantic similarity
-            exact_fields: Fields to compare using exact string matching
-            groupable_patterns: Dict of repeating field patterns (e.g., interventions)
-            use_semantic: Whether to use semantic matching (vs exact only)
+            signature_class: DSPy signature class (for auto-extraction)
+            output_field_name: Name of the output field in signature
+            field_cache_file: Path to JSON file to cache/load field configs
+            target_file: Path to target JSON file (for auto-extraction sampling)
+            required_fields: Explicit list (optional if using signature)
+            semantic_fields: Explicit list (optional if using signature)
+            exact_fields: Explicit list (optional if using signature)
+            groupable_patterns: Explicit dict (optional if using signature)
+            use_semantic: Whether to use semantic matching
             max_concurrent: Max concurrent semantic similarity calls
-            cache_dir: Directory for disk caches (default: current directory)
-
-        Raises:
-            ValueError: If semantic_fields + exact_fields != required_fields
+            cache_dir: Directory for disk caches
         """
-        self.required_fields = required_fields
-        self.semantic_fields = semantic_fields
-        self.exact_fields = exact_fields
-        self.groupable_patterns = groupable_patterns or {}
+        # Logic to load fields if not provided explicitly
+        if required_fields is None:
+            if not all([signature_class, output_field_name, field_cache_file]):
+                raise ValueError("Must provide either explicit fields OR (signature_class, output_field_name, field_cache_file)")
+            
+            self.required_fields, self.semantic_fields, self.exact_fields, self.groupable_patterns = \
+                self._load_or_extract_fields(signature_class, output_field_name, field_cache_file, target_file)
+        else:
+            self.required_fields = required_fields
+            self.semantic_fields = semantic_fields or []
+            self.exact_fields = exact_fields or []
+            self.groupable_patterns = groupable_patterns or {}
+
         self.use_semantic = use_semantic
         self.semaphore = asyncio.Semaphore(max_concurrent)
 
-        self.exact_fields = list(set(exact_fields) - {'Ref_ID', 'filename'})
+        self.exact_fields = list(set(self.exact_fields) - {'Ref_ID', 'filename'})
 
         # Validate: exact_fields + semantic_fields should cover required_fields
-        all_defined = set(semantic_fields) | set(exact_fields)
-        required_set = set(required_fields)
+        all_defined = set(self.semantic_fields) | set(self.exact_fields)
+        required_set = set(self.required_fields)
 
         if all_defined != required_set:
             missing = required_set - all_defined
@@ -61,10 +80,8 @@ class AsyncMedicalExtractionEvaluator:
                 error_msg.append(f"Missing from semantic/exact: {missing}")
             if extra:
                 error_msg.append(f"Extra in semantic/exact: {extra}")
-            raise ValueError(
-                f"Mismatch between required_fields and semantic/exact fields. "
-                + " | ".join(error_msg)
-            )
+            # Warn but don't crash for now, or raise if strict
+            print(f"WARNING: Field mismatch: {error_msg}")
 
         # Persistent caches with configurable directory
         import os
@@ -80,6 +97,50 @@ class AsyncMedicalExtractionEvaluator:
         # Initialize LLM once for reuse
         self._lm = dspy.LM(
             EVALUATION_MODEL, temperature=EVALUATION_TEMPERATURE) if use_semantic else None
+
+    def _load_or_extract_fields(self, signature_class, output_field_name, field_cache_file, target_file):
+        """Load fields from cache or extract from signature."""
+        cache_path = Path(field_cache_file)
+        
+        # Try loading from cache first
+        if cache_path.exists():
+            try:
+                with open(cache_path, 'r') as f:
+                    data = json.load(f)
+                print(f"Loaded field config from {cache_path}")
+                return (
+                    data.get("required_fields", []),
+                    data.get("semantic_fields", []),
+                    data.get("exact_fields", []),
+                    data.get("groupable_patterns", {})
+                )
+            except Exception as e:
+                print(f"Error loading cache {cache_path}: {e}. Regenerating...")
+
+        # If no cache or error, extract using DSPy
+        if not target_file:
+             raise ValueError(f"Cache {field_cache_file} not found and no target_file provided for generation.")
+
+        print(f"Generating field config from signature...")
+        req, sem, exact, group = extract_fields_from_signature(
+            signature_class=signature_class,
+            target_file=target_file,
+            output_field_name=output_field_name,
+            verbose=True
+        )
+
+        # Save to cache
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(cache_path, 'w') as f:
+            json.dump({
+                "required_fields": req,
+                "semantic_fields": sem,
+                "exact_fields": exact,
+                "groupable_patterns": group
+            }, f, indent=2)
+        print(f"Saved field config to {cache_path}")
+        
+        return req, sem, exact, group
 
     def close(self):
         """Cleanly close the disk caches."""
@@ -217,8 +278,8 @@ class AsyncMedicalExtractionEvaluator:
             return value
         try:
             num = float(value)
-            # --- FIX: Use int() to truncate the float (e.g., 3.9 -> 3) ---
-            truncated_value = int(num)
+            # --- FIX: Use math.ceil() to round up (e.g., 3.9 -> 4) ---
+            truncated_value = math.ceil(num)
             return str(truncated_value)
         except (ValueError, TypeError):
             return value

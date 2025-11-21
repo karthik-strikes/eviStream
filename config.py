@@ -4,17 +4,19 @@ Configuration file for eviStream - Medical Data Extraction Pipeline
 
 # Default paths
 DEFAULT_OUTPUT_DIR = None
-DEFAULT_CSV_DIR = "/nlp/data/karthik9/Sprint1/Dental/Data/csvs"
-DEFAULT_JSON_DIR = "/nlp/data/karthik9/Sprint1/Dental/Data/ev_jsons"
+DEFAULT_CSV_DIR = "/nlp/data/karthik9/Sprint1/Dental/Data/eval_csvs"
+DEFAULT_JSON_DIR = "/nlp/data/karthik9/Sprint1/Dental/Data/eval_jsons"
 
 # DSPy History Logging
 DEFAULT_HISTORY_CSV = "dspy_history.csv"
+
+
 
 # Cache directories
 CACHE_DIRS = [".semantic_cache", ".evaluation_cache"]
 
 # Model configuration
-DEFAULT_MODEL = "gemini/gemini-2.5-pro"
+DEFAULT_MODEL = "gemini/gemini-3-pro-preview"
 MAX_TOKENS = 20000
 TEMPERATURE = 1.0
 EVALUATION_MODEL = DEFAULT_MODEL

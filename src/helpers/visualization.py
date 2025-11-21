@@ -1,10 +1,11 @@
-import pandas as pd
-import matplotlib.pyplot as plt
-import numpy as np
-import seaborn as sns
+from typing import Dict, List
+
 import matplotlib.gridspec as gridspec
 import matplotlib.patches as mpatches
-from config import SEMANTIC_FIELD, EXACT_FIELD
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
 
 # --- Set a modern, clean style for all plots ---
 sns.set_style("whitegrid")
@@ -104,14 +105,19 @@ def plot_error_contribution(ax, aggregated_field_counts):
 # ===================================================================
 
 
-def plot_performance_breakdown_gt(ax, aggregated_field_counts):
+def plot_performance_breakdown_gt(
+    ax,
+    aggregated_field_counts: Dict[str, Dict[str, float]],
+    semantic_fields: List[str],
+    exact_fields: List[str],
+):
     """Plots stacked 100% bars for Exact vs. Semantic performance."""
     df = pd.DataFrame.from_dict(aggregated_field_counts, orient='index')
 
     def get_field_type(field_name):
-        if field_name in SEMANTIC_FIELD:
+        if field_name in semantic_fields:
             return 'Semantic'
-        if field_name in EXACT_FIELD:
+        if field_name in exact_fields:
             return 'Exact'
         return 'Other'  # Should not happen if lists are correct
 
@@ -190,7 +196,13 @@ def plot_performance_breakdown_gt(ax, aggregated_field_counts):
 # ===================================================================
 
 
-def plot_hallucination_analysis(ax, aggregated_field_counts, top_n=10):
+def plot_hallucination_analysis(
+    ax,
+    aggregated_field_counts: Dict[str, Dict[str, float]],
+    semantic_fields: List[str],
+    exact_fields: List[str],
+    top_n: int = 10
+):
     """
     Shows the FULL breakdown for the top N 'hallucinating' fields.
     *** Y-axis labels are now color-coded by field type. ***
@@ -199,9 +211,9 @@ def plot_hallucination_analysis(ax, aggregated_field_counts, top_n=10):
 
     # --- NEW: Add field type ---
     def get_field_type(field_name):
-        if field_name in SEMANTIC_FIELD:
+        if field_name in semantic_fields:
             return 'Semantic'
-        if field_name in EXACT_FIELD:
+        if field_name in exact_fields:
             return 'Exact'
         return 'Other'
     df['field_type'] = df.index.map(get_field_type)
@@ -290,7 +302,13 @@ def plot_hallucination_analysis(ax, aggregated_field_counts, top_n=10):
 # ===================================================================
 
 
-def plot_accuracy_breakdown_list(ax, aggregated_field_counts, top_n=20):
+def plot_accuracy_breakdown_list(
+    ax,
+    aggregated_field_counts: Dict[str, Dict[str, float]],
+    semantic_fields: List[str],
+    exact_fields: List[str],
+    top_n: int = 20
+):
     """
     Plots a stacked bar chart for the worst-performing fields,
     SORTED BY TOTAL ERROR COUNT (incorrect + missing).
@@ -303,9 +321,9 @@ def plot_accuracy_breakdown_list(ax, aggregated_field_counts, top_n=20):
 
     # --- NEW: Add field type ---
     def get_field_type(field_name):
-        if field_name in SEMANTIC_FIELD:
+        if field_name in semantic_fields:
             return 'Semantic'
-        if field_name in EXACT_FIELD:
+        if field_name in exact_fields:
             return 'Exact'
         return 'Other'
     df_gt['field_type'] = df_gt.index.map(get_field_type)
@@ -398,12 +416,14 @@ def plot_accuracy_breakdown_list(ax, aggregated_field_counts, top_n=20):
 
 
 def create_performance_dashboards(
-    aggregated_field_counts,
-    avg_precision,
-    avg_recall,
-    avg_f1,
-    save_to_file=False,
-    output_dir="./dashboards"
+    aggregated_field_counts: Dict[str, Dict[str, float]],
+    avg_precision: float,
+    avg_recall: float,
+    avg_f1: float,
+    semantic_fields: List[str],
+    exact_fields: List[str],
+    save_to_file: bool = False,
+    output_dir: str = "./dashboards"
 ):
     """
     Generates two dashboard figures:
@@ -436,10 +456,21 @@ def create_performance_dashboards(
     plot_error_contribution(ax[0, 1], aggregated_field_counts)
 
     # Bottom-Left: Performance Breakdown vs. GT (by Count)
-    plot_performance_breakdown_gt(ax[1, 0], aggregated_field_counts)
+    plot_performance_breakdown_gt(
+        ax[1, 0],
+        aggregated_field_counts,
+        semantic_fields,
+        exact_fields
+    )
 
     # Bottom-Right: The REWORKED Hallucination Analysis
-    plot_hallucination_analysis(ax[1, 1], aggregated_field_counts, top_n=10)
+    plot_hallucination_analysis(
+        ax[1, 1],
+        aggregated_field_counts,
+        semantic_fields,
+        exact_fields,
+        top_n=10
+    )
 
     fig1.tight_layout(pad=4.0)
 
@@ -450,7 +481,13 @@ def create_performance_dashboards(
                   fontsize=24, fontweight='bold', y=1.02)
 
     # Plot the "Super-charged" Worst List
-    plot_accuracy_breakdown_list(ax2, aggregated_field_counts, top_n=30)
+    plot_accuracy_breakdown_list(
+        ax2,
+        aggregated_field_counts,
+        semantic_fields,
+        exact_fields,
+        top_n=30
+    )
 
     fig2.tight_layout(pad=3.0)
 

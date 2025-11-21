@@ -8,10 +8,7 @@ class SchemaDefinition:
 
     name: str
     description: str
-    required_fields: List[str]
-    semantic_fields: List[str]
-    exact_fields: List[str]
-    groupable_patterns: Dict[str, Dict]
+    signature_class: Any
+    output_field_name: str
+    field_cache_file: str
     pipeline_factory: Callable[[], Any]
-    csv_filename: str
-    json_filename: str

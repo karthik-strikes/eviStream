@@ -2,7 +2,8 @@ import asyncio
 import json
 import traceback
 from typing import Dict, List, Any
-from src.helpers.print_helpers import print_extracted_vs_ground_truth, print_field_level_table, print_evaluation_summary, flatten_json
+from src.helpers.print_helpers import print_extracted_vs_ground_truth, print_field_level_table, print_evaluation_summary
+from utils.flatten_json import flatten_json
 from schemas.runtime import SchemaRuntime
 
 
@@ -31,10 +32,30 @@ async def run_async_extraction_and_evaluation(
         file_handler = schema_runtime.file_handler
 
         # ---- 1️⃣ Extract ----
+        # ---- 1️⃣ Extract ----
         baseline_prediction = await async_pipeline(markdown_content)
-        # print(baseline_prediction)
-        baseline_results = [
-            baseline_prediction.characteristics] if baseline_prediction.characteristics else []
+        
+        # Dynamically get the output field based on schema definition
+        # The pipeline returns a dspy.Prediction object. We need to access the field 
+        # that corresponds to the schema's output_field_name OR 'extracted_records' 
+        # if the pipeline uses that convention (like index_test does).
+        
+        # Check for 'extracted_records' first (common convention for list-based extractions)
+        if hasattr(baseline_prediction, 'extracted_records'):
+            baseline_results = baseline_prediction.extracted_records
+        # Fallback to the specific output field name from schema
+        elif hasattr(baseline_prediction, schema_runtime.schema.output_field_name):
+             baseline_results = [getattr(baseline_prediction, schema_runtime.schema.output_field_name)]
+        # Fallback for legacy/single-item extractions (like patient_population might be)
+        elif hasattr(baseline_prediction, 'characteristics'):
+             baseline_results = [baseline_prediction.characteristics]
+        else:
+            print(f"Warning: Could not find expected output field in prediction. Available keys: {baseline_prediction.keys()}")
+            baseline_results = []
+
+        # Ensure it's a list
+        if not isinstance(baseline_results, list):
+            baseline_results = [baseline_results]
 
         # print("Extracted Records:")
         # print(baseline_results)

@@ -50,7 +50,6 @@ async def run_single_extraction(source_file: str, target_file: str, schema_runti
         source_data = json.load(f)
     markdown_content = source_data.get("marker", {}).get("markdown", "")
 
-    print(markdown_content)
     with open(target_file, 'r') as f:
         target_data = json.load(f)
 
@@ -71,7 +70,7 @@ async def run_single_extraction(source_file: str, target_file: str, schema_runti
         schema_runtime=schema_runtime,
         override=False,
         run_diagnostic=False,
-        print_results=True,
+        print_results=False,
         field_level_analysis=True,
         print_field_table=True
     )
@@ -134,6 +133,8 @@ async def run_batch_extraction(md_dir: str, target_file: str, schema_runtime, cl
         'extra': 0
     })
 
+    semantic_fields = schema_runtime.evaluator.semantic_fields
+    exact_fields = schema_runtime.evaluator.exact_fields
     # Run on all examples
     for i, example in enumerate(all_examples):
         print(f"\n{'='*50}")
@@ -196,6 +197,8 @@ async def run_batch_extraction(md_dir: str, target_file: str, schema_runtime, cl
             avg_precision=avg_precision,
             avg_recall=avg_recall,
             avg_f1=avg_f1,
+            semantic_fields=semantic_fields,
+            exact_fields=exact_fields,
             save_to_file=True,
             output_dir=str(dashboard_dir)
         )
@@ -211,6 +214,8 @@ async def run_batch_extraction(md_dir: str, target_file: str, schema_runtime, cl
             avg_precision=avg_precision,
             avg_recall=avg_recall,
             avg_f1=avg_f1,
+            semantic_fields=semantic_fields,
+            exact_fields=exact_fields,
             save_to_file=False
         )
 
@@ -247,7 +252,7 @@ def main():
     args = parser.parse_args()
 
     schema_definition = get_schema(args.schema)
-    schema_runtime = build_schema_runtime(schema_definition)
+    schema_runtime = build_schema_runtime(schema_definition, target_file=args.target)
 
     try:
         if args.mode == "single":

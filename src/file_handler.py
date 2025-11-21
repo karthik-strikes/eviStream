@@ -230,6 +230,3 @@ class AsyncMedicalFileHandler:
             extracted_records, source_file_path, output_dir, override
         )
         return result_path
-
-
-print("Async Medical File Handler defined successfully")

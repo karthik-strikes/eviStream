@@ -1,16 +1,19 @@
-import dspy
-import json
 import asyncio
+import json
 from typing import Dict, Any
+
+import dspy
+
 from utils.json_parser import safe_json_parse
-from dspy_components.signatures import (
+from dspy_components.tasks.patient_population.signatures import (
     ExtractPatientPopulation,
     ExtractPatientSelectionAndDemographics,
     ExtractAgeCharacteristics,
     ExtractBaselineCharacteristics,
     ExtractTargetCondition,
-    CombinePatientPopulationCharacteristics
+    CombinePatientPopulationCharacteristics,
 )
+
 
 class AsyncPatientPopulationExtractor(dspy.Module):
     """Async module to extract patient population categories."""
@@ -24,7 +27,7 @@ class AsyncPatientPopulationExtractor(dspy.Module):
 
         def _extract():
             return self.extract(markdown_content=markdown_content)
-        
+
         try:
             result = await loop.run_in_executor(None, _extract)
             return safe_json_parse(result.patient_population_json)
@@ -37,7 +40,7 @@ class AsyncPatientPopulationExtractor(dspy.Module):
                     "healthy_without_lesions": {"selected": False, "comment": ""},
                     "other": {"selected": False, "comment": ""},
                     "unclear": {"selected": False, "comment": ""},
-                    "statement": "NR"
+                    "statement": "NR",
                 }
             }
 
@@ -51,14 +54,15 @@ class AsyncPatientSelectionDemographicsExtractor(dspy.Module):
 
     def __init__(self):
         super().__init__()
-        self.extract = dspy.ChainOfThought(ExtractPatientSelectionAndDemographics)
+        self.extract = dspy.ChainOfThought(
+            ExtractPatientSelectionAndDemographics)
 
     async def __call__(self, markdown_content: str) -> Dict[str, Any]:
         loop = asyncio.get_running_loop()
 
         def _extract():
             return self.extract(markdown_content=markdown_content)
-        
+
         try:
             result = await loop.run_in_executor(None, _extract)
             return safe_json_parse(result.selection_demographics_json)
@@ -68,7 +72,7 @@ class AsyncPatientSelectionDemographicsExtractor(dspy.Module):
                 "patient_selection_method": "NR",
                 "population_ses": "NR",
                 "population_ethnicity": "NR",
-                "population_risk_factors": "NR"
+                "population_risk_factors": "NR",
             }
 
     def forward_sync(self, markdown_content: str) -> Dict[str, Any]:
@@ -88,7 +92,7 @@ class AsyncAgeCharacteristicsExtractor(dspy.Module):
 
         def _extract():
             return self.extract(markdown_content=markdown_content)
-        
+
         try:
             result = await loop.run_in_executor(None, _extract)
             return safe_json_parse(result.age_characteristics_json)
@@ -98,13 +102,13 @@ class AsyncAgeCharacteristicsExtractor(dspy.Module):
                 "age_central_tendency": {
                     "mean": {"selected": False, "value": ""},
                     "median": {"selected": False, "value": ""},
-                    "not_reported": True
+                    "not_reported": True,
                 },
                 "age_variability": {
                     "sd": {"selected": False, "value": ""},
                     "range": {"selected": False, "value": ""},
-                    "not_reported": True
-                }
+                    "not_reported": True,
+                },
             }
 
     def forward_sync(self, markdown_content: str) -> Dict[str, Any]:
@@ -124,7 +128,7 @@ class AsyncBaselineCharacteristicsExtractor(dspy.Module):
 
         def _extract():
             return self.extract(markdown_content=markdown_content)
-        
+
         try:
             result = await loop.run_in_executor(None, _extract)
             return safe_json_parse(result.baseline_json)
@@ -138,7 +142,7 @@ class AsyncBaselineCharacteristicsExtractor(dspy.Module):
                     "male_n": {"selected": False, "value": ""},
                     "male_percent": {"selected": False, "value": ""},
                     "not_reported": {"selected": True, "value": ""},
-                    "other": {"selected": False, "value": ""}
+                    "other": {"selected": False, "value": ""},
                 }
             }
 
@@ -159,7 +163,7 @@ class AsyncTargetConditionExtractor(dspy.Module):
 
         def _extract():
             return self.extract(markdown_content=markdown_content)
-        
+
         try:
             result = await loop.run_in_executor(None, _extract)
             return safe_json_parse(result.target_condition_json)
@@ -169,11 +173,11 @@ class AsyncTargetConditionExtractor(dspy.Module):
                 "target_condition": {
                     "opmd": {"selected": False, "comment": ""},
                     "oral_cancer": {"selected": False, "comment": ""},
-                    "other": {"selected": False, "comment": ""}
+                    "other": {"selected": False, "comment": ""},
                 },
                 "target_condition_severity": "NR",
                 "target_condition_site": "NR",
-                "filename": "Unknown_0000"
+                "filename": "Unknown_0000",
             }
 
     def forward_sync(self, markdown_content: str) -> Dict[str, Any]:
@@ -186,10 +190,11 @@ class AsyncPatientCharacteristicsCombiner(dspy.Module):
 
     def __init__(self):
         super().__init__()
-        self.combiner = dspy.ChainOfThought(CombinePatientPopulationCharacteristics)
+        self.combiner = dspy.ChainOfThought(
+            CombinePatientPopulationCharacteristics)
 
-    async def __call__(self, patient_population: Dict, selection_demographics: Dict, 
-                      age_characteristics: Dict, baseline: Dict, target_condition: Dict) -> Dict[str, Any]:
+    async def __call__(self, patient_population: Dict, selection_demographics: Dict,
+                       age_characteristics: Dict, baseline: Dict, target_condition: Dict) -> Dict[str, Any]:
         loop = asyncio.get_running_loop()
 
         def _combine():
@@ -200,13 +205,13 @@ class AsyncPatientCharacteristicsCombiner(dspy.Module):
                 baseline_json=json.dumps(baseline),
                 target_condition_json=json.dumps(target_condition)
             )
-        
+
         try:
             result = await loop.run_in_executor(None, _combine)
             return safe_json_parse(result.complete_characteristics_json)
         except Exception as e:
-            print(f"Error in combining characteristics: {e}, using fallback merge")
-            # Fallback: merge dictionaries manually
+            print(
+                f"Error in combining characteristics: {e}, using fallback merge")
             combined = {}
             combined.update(patient_population)
             combined.update(selection_demographics)
@@ -215,8 +220,8 @@ class AsyncPatientCharacteristicsCombiner(dspy.Module):
             combined.update(target_condition)
             return combined
 
-    def forward_sync(self, patient_population: Dict, selection_demographics: Dict, 
-                    age_characteristics: Dict, baseline: Dict, target_condition: Dict) -> Dict[str, Any]:
+    def forward_sync(self, patient_population: Dict, selection_demographics: Dict,
+                     age_characteristics: Dict, baseline: Dict, target_condition: Dict) -> Dict[str, Any]:
         result = self.combiner(
             patient_population_json=json.dumps(patient_population),
             selection_demographics_json=json.dumps(selection_demographics),
@@ -227,23 +232,19 @@ class AsyncPatientCharacteristicsCombiner(dspy.Module):
         return safe_json_parse(result.complete_characteristics_json)
 
 
-# ============================================================================
-# ORCHESTRATION MODULE
-# ============================================================================
-
 class AsyncPatientPopulationCharacteristicsPipeline(dspy.Module):
     """Complete async pipeline for extracting patient population characteristics."""
 
     def __init__(self, max_concurrent: int = 5):
         super().__init__()
-        
+
         self.patient_population_extractor = AsyncPatientPopulationExtractor()
         self.selection_demographics_extractor = AsyncPatientSelectionDemographicsExtractor()
         self.age_characteristics_extractor = AsyncAgeCharacteristicsExtractor()
         self.baseline_extractor = AsyncBaselineCharacteristicsExtractor()
         self.target_condition_extractor = AsyncTargetConditionExtractor()
         self.combiner = AsyncPatientCharacteristicsCombiner()
-        
+
         self.max_concurrent = max_concurrent
         self._semaphore = None
 
@@ -253,13 +254,15 @@ class AsyncPatientPopulationCharacteristicsPipeline(dspy.Module):
         return self._semaphore
 
     async def forward(self, markdown_content: str):
-        """Extract complete patient population characteristics asynchronously."""
-
-        patient_population_task = self.patient_population_extractor(markdown_content)
-        selection_demographics_task = self.selection_demographics_extractor(markdown_content)
-        age_characteristics_task = self.age_characteristics_extractor(markdown_content)
+        patient_population_task = self.patient_population_extractor(
+            markdown_content)
+        selection_demographics_task = self.selection_demographics_extractor(
+            markdown_content)
+        age_characteristics_task = self.age_characteristics_extractor(
+            markdown_content)
         baseline_task = self.baseline_extractor(markdown_content)
-        target_condition_task = self.target_condition_extractor(markdown_content)
+        target_condition_task = self.target_condition_extractor(
+            markdown_content)
 
         patient_population, selection_demographics, age_characteristics, baseline, target_condition = await asyncio.gather(
             patient_population_task,
@@ -308,7 +311,8 @@ class SyncPatientPopulationCharacteristicsPipeline(dspy.Module):
                     import nest_asyncio
                     nest_asyncio.apply()
                 except ImportError:
-                    raise ImportError("Please install nest_asyncio: pip install nest_asyncio")
+                    raise ImportError(
+                        "Please install nest_asyncio: pip install nest_asyncio")
         except RuntimeError:
             pass
 
@@ -320,4 +324,13 @@ class SyncPatientPopulationCharacteristicsPipeline(dspy.Module):
         return SyncPatientPopulationCharacteristicsPipeline()
 
 
-print("Updated Patient Population Characteristics signatures and modules with new nested structure defined successfully")
+__all__ = [
+    "AsyncPatientPopulationExtractor",
+    "AsyncPatientSelectionDemographicsExtractor",
+    "AsyncAgeCharacteristicsExtractor",
+    "AsyncBaselineCharacteristicsExtractor",
+    "AsyncTargetConditionExtractor",
+    "AsyncPatientCharacteristicsCombiner",
+    "AsyncPatientPopulationCharacteristicsPipeline",
+    "SyncPatientPopulationCharacteristicsPipeline",
+]
