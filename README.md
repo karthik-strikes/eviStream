@@ -6,7 +6,7 @@ The pipeline features semantic evaluation capabilities that go beyond exact stri
 
 eviStream supports both single-file and batch processing modes, provides comprehensive evaluation metrics with visual dashboards, and logs all LLM interactions for cost tracking and debugging.
 
-## How to Run it
+## How to Run
 
 ### Single File Extraction
 
