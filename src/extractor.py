@@ -34,6 +34,7 @@ async def run_async_extraction_and_evaluation(
         # ---- 1️⃣ Extract ----
         # ---- 1️⃣ Extract ----
         baseline_prediction = await async_pipeline(markdown_content)
+        print(baseline_prediction)
         
         # Dynamically get the output field based on schema definition
         # The pipeline returns a dspy.Prediction object. We need to access the field 
@@ -49,6 +50,15 @@ async def run_async_extraction_and_evaluation(
         # Fallback for legacy/single-item extractions (like patient_population might be)
         elif hasattr(baseline_prediction, 'characteristics'):
              baseline_results = [baseline_prediction.characteristics]
+        # Fallback for outcomes_study schema
+        elif hasattr(baseline_prediction, 'outcomes'):
+             baseline_results = [baseline_prediction.outcomes]
+        # Fallback for missing_data_study schema
+        elif hasattr(baseline_prediction, 'missing_data'):
+             baseline_results = [baseline_prediction.missing_data]
+        # Fallback for reference_standard schema
+        elif hasattr(baseline_prediction, 'reference_standard'):
+             baseline_results = [baseline_prediction.reference_standard]
         else:
             print(f"Warning: Could not find expected output field in prediction. Available keys: {baseline_prediction.keys()}")
             baseline_results = []

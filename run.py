@@ -11,11 +11,13 @@ from collections import defaultdict
 
 from utils.lm_config import *
 from utils.cache_cleaner import clear_cache_directories
-from utils.logging import set_log_file, log_history, show_stats
+from utils.logging import set_log_file, log_history, show_stats, log_execution_time
 from data.loader import *
+import time
 from src.extractor import run_async_extraction_and_evaluation
 from src.helpers.visualization import create_performance_dashboards
 from schemas import get_schema, build_schema_runtime, list_schemas
+from config import INCLUDE_FULL_PROMPTS_IN_HISTORY
 
 # Add eviStream to path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -33,6 +35,8 @@ async def run_single_extraction(source_file: str, target_file: str, schema_runti
     print("="*60)
     print("eviStream - Single Extraction Mode")
     print("="*60)
+    
+    start_time = time.time()
 
     # Optional: clear caches
     if clear_cache:
@@ -40,7 +44,7 @@ async def run_single_extraction(source_file: str, target_file: str, schema_runti
         clear_cache_directories(cache_root=str(Path(__file__).parent))
 
     # Set up logging
-    set_log_file("dspy_history.csv")
+    set_log_file("dspy_history.csv", include_full_prompts=INCLUDE_FULL_PROMPTS_IN_HISTORY)
 
     # Load data
     print(f"\nLoading source: {source_file}")
@@ -63,6 +67,7 @@ async def run_single_extraction(source_file: str, target_file: str, schema_runti
 
     # Run extraction and evaluation
     print("\nRunning extraction and evaluation...")
+    # print(schema_runtime)
     result = await run_async_extraction_and_evaluation(
         markdown_content=markdown_content,
         source_file=source_file,
@@ -83,6 +88,8 @@ async def run_single_extraction(source_file: str, target_file: str, schema_runti
     print("\n" + "="*60)
     print("Single extraction completed!")
     print("="*60)
+    
+    log_execution_time(start_time, time.time(), "single", source_file, target_file, schema_runtime.schema.name)
 
 
 async def run_batch_extraction(md_dir: str, target_file: str, schema_runtime, clear_cache: bool = False, max_examples: int = None, save_dashboards: bool = False):
@@ -99,6 +106,8 @@ async def run_batch_extraction(md_dir: str, target_file: str, schema_runtime, cl
     print("="*60)
     print("eviStream - Batch Extraction Mode")
     print("="*60)
+    
+    start_time = time.time()
 
     # Optional: clear caches
     if clear_cache:
@@ -106,7 +115,7 @@ async def run_batch_extraction(md_dir: str, target_file: str, schema_runtime, cl
         clear_cache_directories(cache_root=str(Path(__file__).parent))
 
     # Set up logging
-    set_log_file("dspy_history_batch.csv")
+    set_log_file("dspy_history_batch.csv", include_full_prompts=INCLUDE_FULL_PROMPTS_IN_HISTORY)
 
     # Create examples
     print(f"\nCreating examples from: {md_dir}")
@@ -227,6 +236,8 @@ async def run_batch_extraction(md_dir: str, target_file: str, schema_runtime, cl
     print("\n" + "="*60)
     print("Batch extraction completed!")
     print("="*60)
+    
+    log_execution_time(start_time, time.time(), "batch", md_dir, target_file, schema_runtime.schema.name)
 
 
 def main():

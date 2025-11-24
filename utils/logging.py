@@ -8,12 +8,19 @@ import dspy
 # Global variables to track processed calls
 _processed_hashes = set()
 _csv_path = "dspy_history.csv"
+_include_full_prompts = False  # Set to True to log full prompts (increases CSV size)
 
 
-def set_log_file(csv_path: str):
-    """Set the CSV file path for logging."""
-    global _csv_path, _processed_hashes
+def set_log_file(csv_path: str, include_full_prompts: bool = False):
+    """Set the CSV file path for logging.
+    
+    Args:
+        csv_path: Path to the CSV file for logging
+        include_full_prompts: If True, log full system and user prompts (increases file size)
+    """
+    global _csv_path, _processed_hashes, _include_full_prompts
     _csv_path = csv_path
+    _include_full_prompts = include_full_prompts
 
     # Load existing hashes from CSV if it exists
     if Path(csv_path).exists():
@@ -27,6 +34,8 @@ def set_log_file(csv_path: str):
             print(f"Warning: Could not load existing CSV: {e}")
     else:
         print(f"New log file will be created: {csv_path}")
+        if include_full_prompts:
+            print("  ⚠️  Full prompts will be logged (large file size)")
 
 
 def log_history():
@@ -97,6 +106,12 @@ def log_history():
             'cache_hit': getattr(response_obj, 'cache_hit', False) if response_obj else False,
             'logged_at': datetime.now().isoformat()
         }
+        
+        # Add full prompts if enabled
+        if _include_full_prompts:
+            record['full_system_prompt'] = system_msg
+            record['full_user_prompt'] = user_msg
+            record['full_response'] = assistant_response
 
         new_records.append(record)
         _processed_hashes.add(call_hash)
@@ -213,3 +228,27 @@ def export_full_history(output_file: str = "full_dspy_history.json"):
             print("No history found to export")
     except Exception as e:
         print(f"Error exporting history: {e}")
+
+
+def log_execution_time(start_time: float, end_time: float, mode: str, source: str, target: str, schema: str):
+    """Log execution time to CSV."""
+    duration = end_time - start_time
+    csv_path = "execution_times.csv"
+    
+    record = {
+        "timestamp": datetime.now().isoformat(),
+        "mode": mode,
+        "duration_seconds": round(duration, 2),
+        "source": source,
+        "target": target,
+        "schema": schema
+    }
+    
+    df = pd.DataFrame([record])
+    
+    if Path(csv_path).exists():
+        df.to_csv(csv_path, mode='a', header=False, index=False)
+    else:
+        df.to_csv(csv_path, index=False)
+    
+    print(f"\nExecution time logged: {duration:.2f}s")
