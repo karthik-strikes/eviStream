@@ -34,7 +34,7 @@ async def run_async_extraction_and_evaluation(
         # ---- 1️⃣ Extract ----
         # ---- 1️⃣ Extract ----
         baseline_prediction = await async_pipeline(markdown_content)
-        print(baseline_prediction)
+        #print(baseline_prediction)
         
         # Dynamically get the output field based on schema definition
         # The pipeline returns a dspy.Prediction object. We need to access the field 
@@ -47,6 +47,9 @@ async def run_async_extraction_and_evaluation(
         # Fallback to the specific output field name from schema
         elif hasattr(baseline_prediction, schema_runtime.schema.output_field_name):
              baseline_results = [getattr(baseline_prediction, schema_runtime.schema.output_field_name)]
+        # Fallback for index_test schema (AsyncIndexTestPipeline returns 'index_test')
+        elif hasattr(baseline_prediction, 'index_test'):
+             baseline_results = [baseline_prediction.index_test]
         # Fallback for legacy/single-item extractions (like patient_population might be)
         elif hasattr(baseline_prediction, 'characteristics'):
              baseline_results = [baseline_prediction.characteristics]
@@ -60,12 +63,32 @@ async def run_async_extraction_and_evaluation(
         elif hasattr(baseline_prediction, 'reference_standard'):
              baseline_results = [baseline_prediction.reference_standard]
         else:
-            print(f"Warning: Could not find expected output field in prediction. Available keys: {baseline_prediction.keys()}")
+            available_attrs = []
+            if hasattr(baseline_prediction, "__dict__"):
+                available_attrs = list(baseline_prediction.__dict__.keys())
+            else:
+                available_attrs = [
+                    attr for attr in dir(baseline_prediction)
+                    if not attr.startswith("_")
+                ]
+            print(
+                "Warning: Could not find expected output field in prediction. "
+                f"Available attributes: {available_attrs}"
+            )
             baseline_results = []
 
         # Ensure it's a list
         if not isinstance(baseline_results, list):
             baseline_results = [baseline_results]
+
+        # Flatten nested lists if present (e.g. if an extractor returned a list of records instead of one)
+        flat_results = []
+        for item in baseline_results:
+            if isinstance(item, list):
+                flat_results.extend(item)
+            else:
+                flat_results.append(item)
+        baseline_results = flat_results
 
         # print("Extracted Records:")
         # print(baseline_results)

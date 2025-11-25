@@ -1,19 +1,9 @@
 from typing import Dict, List
 
-from .patient_population import PATIENT_POPULATION_SCHEMA
-from .index_test import INDEX_TEST_SCHEMA
-from .outcomes_study import OUTCOMES_STUDY_SCHEMA
-from .missing_data_study import MISSING_DATA_STUDY_SCHEMA
-from .reference_standard import REFERENCE_STANDARD_SCHEMA
 from .base import SchemaDefinition
+from .configs import get_all_schema_definitions
 
-_SCHEMA_REGISTRY: Dict[str, SchemaDefinition] = {
-    "patient_population": PATIENT_POPULATION_SCHEMA,
-    "index_test": INDEX_TEST_SCHEMA,
-    "outcomes_study": OUTCOMES_STUDY_SCHEMA,
-    "missing_data_study": MISSING_DATA_STUDY_SCHEMA,
-    "reference_standard": REFERENCE_STANDARD_SCHEMA,
-}
+_SCHEMA_REGISTRY: Dict[str, SchemaDefinition] = get_all_schema_definitions()
 
 
 def get_schema(schema_name: str) -> SchemaDefinition:

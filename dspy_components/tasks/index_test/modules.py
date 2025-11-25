@@ -1,346 +1,423 @@
-import dspy
 import asyncio
 import json
-from typing import Dict, List, Any
+from typing import Dict, Any
+
+import dspy
 
 from utils.json_parser import safe_json_parse
 from dspy_components.tasks.index_test.signatures import (
-    ExtractIndexTestCount,
     ExtractIndexTestType,
-    ExtractIndexTestBasicInfo,
-    ExtractIndexTestMethodology,
-    ExtractIndexTestAnalysis,
-    ExtractIndexTestNumbers,
-    ExtractIndexTestQuality
+    ExtractIndexTestBrandAndSite,
+    ExtractSpecimenCollection,
+    ExtractTechniqueAndAnalysis,
+    ExtractPatientsLesionsIndexTest,
+    ExtractPositivityThreshold,
+    ExtractAssessorTrainingAndBlinding,
+    ExtractAdditionalComments,
+    CombineIndexTestData,
 )
 
 
-class AsyncIndexTestCounter(dspy.Module):
-    """Async module to count all index tests in the study."""
-    
+class AsyncIndexTestTypeExtractor(dspy.Module):
+    """Async module to extract index test type."""
+
     def __init__(self):
         super().__init__()
-        self.count_tests = dspy.ChainOfThought(ExtractIndexTestCount)
-    
+        self.extract = dspy.ChainOfThought(ExtractIndexTestType)
+
     async def __call__(self, markdown_content: str) -> Dict[str, Any]:
         loop = asyncio.get_running_loop()
-        
+
         def _extract():
-            return self.count_tests(markdown_content=markdown_content)
-        
+            return self.extract(markdown_content=markdown_content)
+
         try:
             result = await loop.run_in_executor(None, _extract)
-            return {
-                "number_index_tests": int(result.number_index_tests)
-            }
+            return safe_json_parse(result.index_test_type_json)
         except Exception as e:
-            print(f"Error counting index tests: {e}")
-            return {"number_index_tests": 0}
+            print(f"Error in index test type extraction: {e}")
+            return {
+                "cytology": {"selected": False, "comment": ""},
+                "vital_staining": {"selected": False, "comment": ""},
+                "autofluorescence": {"selected": False, "comment": ""},
+                "tissue_reflectance": {"selected": False, "comment": ""},
+                "other": {"selected": False, "comment": ""}
+            }
+
+    def forward_sync(self, markdown_content: str) -> Dict[str, Any]:
+        result = self.extract(markdown_content=markdown_content)
+        return safe_json_parse(result.index_test_type_json)
 
 
-class AsyncIndexTestTypeExtractor(dspy.Module):
-    """Async module to extract test type classification."""
-    
+class AsyncIndexTestBrandAndSiteExtractor(dspy.Module):
+    """Async module to extract brand name and site selection."""
+
     def __init__(self):
         super().__init__()
-        self.extract_type = dspy.ChainOfThought(ExtractIndexTestType)
-    
-    async def __call__(self, markdown_content: str, test_number: int, total_tests: int) -> Dict[str, Any]:
+        self.extract = dspy.ChainOfThought(ExtractIndexTestBrandAndSite)
+
+    async def __call__(self, markdown_content: str) -> Dict[str, Any]:
         loop = asyncio.get_running_loop()
-        
+
         def _extract():
-            return self.extract_type(
-                markdown_content=markdown_content,
-                test_number=test_number,
-                total_tests=total_tests
-            )
-        
+            return self.extract(markdown_content=markdown_content)
+
         try:
             result = await loop.run_in_executor(None, _extract)
-            return {
-                "type_category": result.test_type_category,
-                "type_comment": result.test_type_comment
-            }
+            return safe_json_parse(result.brand_and_site_json)
         except Exception as e:
-            print(f"Error extracting test type: {e}")
-            return {"type_category": "other", "type_comment": "Error extracting type"}
+            print(f"Error in brand/site extraction: {e}")
+            return {
+                "brand_name": "NR",
+                "site_selection": "NR"
+            }
+
+    def forward_sync(self, markdown_content: str) -> Dict[str, Any]:
+        result = self.extract(markdown_content=markdown_content)
+        return safe_json_parse(result.brand_and_site_json)
 
 
-class AsyncIndexTestBasicExtractor(dspy.Module):
-    """Async module to extract basic test information."""
-    
+class AsyncSpecimenCollectionExtractor(dspy.Module):
+    """Async module to extract specimen collection methodology."""
+
     def __init__(self):
         super().__init__()
-        self.extract_basic = dspy.ChainOfThought(ExtractIndexTestBasicInfo)
-    
-    async def __call__(self, markdown_content: str, test_number: int, total_tests: int) -> Dict[str, Any]:
+        self.extract = dspy.ChainOfThought(ExtractSpecimenCollection)
+
+    async def __call__(self, markdown_content: str, index_test_type: str) -> str:
         loop = asyncio.get_running_loop()
-        
+
         def _extract():
-            return self.extract_basic(
+            return self.extract(
                 markdown_content=markdown_content,
-                test_number=test_number,
-                total_tests=total_tests
+                index_test_type=index_test_type
             )
-        
+
         try:
             result = await loop.run_in_executor(None, _extract)
-            return {
-                "subform": result.subform,
-                "brand_name": result.brand_name
-            }
+            return result.specimen_collection
         except Exception as e:
-            print(f"Error extracting basic info: {e}")
-            return {"subform": f"Test {test_number}", "brand_name": "NR"}
+            print(f"Error in specimen collection extraction: {e}")
+            return ""
+
+    def forward_sync(self, markdown_content: str, index_test_type: str) -> str:
+        result = self.extract(
+            markdown_content=markdown_content,
+            index_test_type=index_test_type
+        )
+        return result.specimen_collection
 
 
-class AsyncIndexTestMethodologyExtractor(dspy.Module):
-    """Async module to extract test methodology."""
-    
+class AsyncTechniqueAndAnalysisExtractor(dspy.Module):
+    """Async module to extract technique and analysis methods."""
+
     def __init__(self):
         super().__init__()
-        self.extract_methodology = dspy.ChainOfThought(ExtractIndexTestMethodology)
-    
-    async def __call__(self, markdown_content: str, test_name: str) -> Dict[str, Any]:
+        self.extract = dspy.ChainOfThought(ExtractTechniqueAndAnalysis)
+
+    async def __call__(self, markdown_content: str, index_test_type: str) -> str:
         loop = asyncio.get_running_loop()
-        
+
         def _extract():
-            return self.extract_methodology(
+            return self.extract(
                 markdown_content=markdown_content,
-                test_name=test_name
+                index_test_type=index_test_type
             )
-        
+
         try:
             result = await loop.run_in_executor(None, _extract)
-            return {
-                "site_selection": result.site_selection,
-                "specimen_collection": result.specimen_collection,
-                "collection_device": result.collection_device,
-                "technique": result.technique,
-                "staining_procedure": result.staining_procedure,
-                "sample_collection": result.sample_collection
-            }
+            return result.technique
         except Exception as e:
-            print(f"Error extracting methodology: {e}")
-            return {k: "NR" for k in ["site_selection", "specimen_collection", "collection_device", "technique", "staining_procedure", "sample_collection"]}
+            print(f"Error in technique/analysis extraction: {e}")
+            return ""
+
+    def forward_sync(self, markdown_content: str, index_test_type: str) -> str:
+        result = self.extract(
+            markdown_content=markdown_content,
+            index_test_type=index_test_type
+        )
+        return result.technique
 
 
-class AsyncIndexTestAnalysisExtractor(dspy.Module):
-    """Async module to extract analysis methods."""
-    
+class AsyncPatientsLesionsIndexTestExtractor(dspy.Module):
+    """Async module to extract patient and lesion counts for index test."""
+
     def __init__(self):
         super().__init__()
-        self.extract_analysis = dspy.ChainOfThought(ExtractIndexTestAnalysis)
-    
-    async def __call__(self, markdown_content: str, test_name: str) -> Dict[str, Any]:
+        self.extract = dspy.ChainOfThought(ExtractPatientsLesionsIndexTest)
+
+    async def __call__(self, markdown_content: str) -> Dict[str, Any]:
         loop = asyncio.get_running_loop()
-        
+
         def _extract():
-            return self.extract_analysis(
-                markdown_content=markdown_content,
-                test_name=test_name
-            )
-        
+            return self.extract(markdown_content=markdown_content)
+
         try:
             result = await loop.run_in_executor(None, _extract)
-            return {
-                "analysis_methods": result.analysis_methods,
-                "ai_analysis": result.ai_analysis,
-                "positivity_threshold": result.positivity_threshold,
-                "positivity_threshold_transformed": result.positivity_threshold_transformed,
-                "atypical_positive_negative": result.atypical_positive_negative
-            }
+            return safe_json_parse(result.patients_lesions_index_test_json)
         except Exception as e:
-            print(f"Error extracting analysis: {e}")
-            return {k: "NR" for k in ["analysis_methods", "ai_analysis", "positivity_threshold", "positivity_threshold_transformed", "atypical_positive_negative"]}
+            print(f"Error in patients/lesions index test extraction: {e}")
+            return {
+                "patients_received_n": "NR",
+                "patients_analyzed_n": "NR",
+                "lesions_received_n": "NR",
+                "lesions_analyzed_n": "NR"
+            }
+
+    def forward_sync(self, markdown_content: str) -> Dict[str, Any]:
+        result = self.extract(markdown_content=markdown_content)
+        return safe_json_parse(result.patients_lesions_index_test_json)
 
 
-class AsyncIndexTestNumbersExtractor(dspy.Module):
-    """Async module to extract participant/lesion numbers."""
-    
+class AsyncPositivityThresholdExtractor(dspy.Module):
+    """Async module to extract positivity threshold criteria."""
+
     def __init__(self):
         super().__init__()
-        self.extract_numbers = dspy.ChainOfThought(ExtractIndexTestNumbers)
-    
-    async def __call__(self, markdown_content: str, test_name: str) -> Dict[str, Any]:
+        self.extract = dspy.ChainOfThought(ExtractPositivityThreshold)
+
+    async def __call__(self, markdown_content: str, index_test_type: str) -> str:
         loop = asyncio.get_running_loop()
-        
+
         def _extract():
-            return self.extract_numbers(
+            return self.extract(
                 markdown_content=markdown_content,
-                test_name=test_name
+                index_test_type=index_test_type
             )
-        
+
         try:
             result = await loop.run_in_executor(None, _extract)
-            return {
-                "patients_received_n": result.patients_received_n,
-                "patients_analyzed_n": result.patients_analyzed_n,
-                "lesions_received_n": result.lesions_received_n,
-                "lesions_analyzed_n": result.lesions_analyzed_n
-            }
+            return result.positivity_threshold
         except Exception as e:
-            print(f"Error extracting numbers: {e}")
-            return {k: "NR" for k in ["patients_received_n", "patients_analyzed_n", "lesions_received_n", "lesions_analyzed_n"]}
+            print(f"Error in positivity threshold extraction: {e}")
+            return "NR"
+
+    def forward_sync(self, markdown_content: str, index_test_type: str) -> str:
+        result = self.extract(
+            markdown_content=markdown_content,
+            index_test_type=index_test_type
+        )
+        return result.positivity_threshold
 
 
-class AsyncIndexTestQualityExtractor(dspy.Module):
-    """Async module to extract quality measures."""
-    
+class AsyncAssessorTrainingBlindingExtractor(dspy.Module):
+    """Async module to extract assessor training and blinding information."""
+
     def __init__(self):
         super().__init__()
-        self.extract_quality = dspy.ChainOfThought(ExtractIndexTestQuality)
-    
-    async def __call__(self, markdown_content: str, test_name: str) -> Dict[str, Any]:
+        self.extract = dspy.ChainOfThought(ExtractAssessorTrainingAndBlinding)
+
+    async def __call__(self, markdown_content: str) -> Dict[str, Any]:
         loop = asyncio.get_running_loop()
-        
+
         def _extract():
-            return self.extract_quality(
-                markdown_content=markdown_content,
-                test_name=test_name
-            )
-        
+            return self.extract(markdown_content=markdown_content)
+
         try:
             result = await loop.run_in_executor(None, _extract)
-            return {
-                "assessor_training": result.assessor_training,
-                "assessor_blinding": result.assessor_blinding,
-                "examiner_blinding": result.examiner_blinding,
-                "additional_comments": result.additional_comments
-            }
+            return safe_json_parse(result.assessor_training_blinding_json)
         except Exception as e:
-            print(f"Error extracting quality: {e}")
-            return {k: "NR" for k in ["assessor_training", "assessor_blinding", "examiner_blinding", "additional_comments"]}
+            print(f"Error in assessor training/blinding extraction: {e}")
+            return {
+                "assessor_training": "NR",
+                "assessor_blinding": "NR",
+                "examiner_blinding": "NR"
+            }
+
+    def forward_sync(self, markdown_content: str) -> Dict[str, Any]:
+        result = self.extract(markdown_content=markdown_content)
+        return safe_json_parse(result.assessor_training_blinding_json)
+
+
+class AsyncAdditionalCommentsExtractor(dspy.Module):
+    """Async module to extract additional comments."""
+
+    def __init__(self):
+        super().__init__()
+        self.extract = dspy.ChainOfThought(ExtractAdditionalComments)
+
+    async def __call__(self, markdown_content: str) -> str:
+        loop = asyncio.get_running_loop()
+
+        def _extract():
+            return self.extract(markdown_content=markdown_content)
+
+        try:
+            result = await loop.run_in_executor(None, _extract)
+            return result.additional_comments
+        except Exception as e:
+            print(f"Error in additional comments extraction: {e}")
+            return ""
+
+    def forward_sync(self, markdown_content: str) -> str:
+        result = self.extract(markdown_content=markdown_content)
+        return result.additional_comments
+
+
+class AsyncIndexTestCombiner(dspy.Module):
+    """Async module to combine all index test data."""
+
+    def __init__(self):
+        super().__init__()
+        self.combiner = dspy.ChainOfThought(CombineIndexTestData)
+
+    async def __call__(
+        self,
+        index_test_type: Dict[str, Any],
+        brand_and_site: Dict[str, Any],
+        specimen_collection: str,
+        technique: str,
+        patients_lesions_index_test: Dict[str, Any],
+        positivity_threshold: str,
+        assessor_training_blinding: Dict[str, Any],
+        additional_comments: str
+    ) -> Dict[str, Any]:
+        loop = asyncio.get_running_loop()
+
+        def _combine():
+            return self.combiner(
+                index_test_type_json=json.dumps(index_test_type),
+                brand_and_site_json=json.dumps(brand_and_site),
+                specimen_collection=specimen_collection,
+                technique=technique,
+                patients_lesions_index_test_json=json.dumps(patients_lesions_index_test),
+                positivity_threshold=positivity_threshold,
+                assessor_training_blinding_json=json.dumps(assessor_training_blinding),
+                additional_comments=additional_comments
+            )
+
+        try:
+            result = await loop.run_in_executor(None, _combine)
+            return safe_json_parse(result.complete_index_test_json)
+        except Exception as e:
+            print(f"Error in combining index test data: {e}, using fallback merge")
+            combined = {
+                "type": index_test_type,
+                "specimen_collection": specimen_collection,
+                "technique": technique,
+                "positivity_threshold": positivity_threshold,
+                "additional_comments": additional_comments
+            }
+            combined.update(brand_and_site)
+            combined.update(patients_lesions_index_test)
+            combined.update(assessor_training_blinding)
+            return combined
+
+    def forward_sync(
+        self,
+        index_test_type: Dict[str, Any],
+        brand_and_site: Dict[str, Any],
+        specimen_collection: str,
+        technique: str,
+        patients_lesions_index_test: Dict[str, Any],
+        positivity_threshold: str,
+        assessor_training_blinding: Dict[str, Any],
+        additional_comments: str
+    ) -> Dict[str, Any]:
+        result = self.combiner(
+            index_test_type_json=json.dumps(index_test_type),
+            brand_and_site_json=json.dumps(brand_and_site),
+            specimen_collection=specimen_collection,
+            technique=technique,
+            patients_lesions_index_test_json=json.dumps(patients_lesions_index_test),
+            positivity_threshold=positivity_threshold,
+            assessor_training_blinding_json=json.dumps(assessor_training_blinding),
+            additional_comments=additional_comments
+        )
+        return safe_json_parse(result.complete_index_test_json)
 
 
 class AsyncIndexTestPipeline(dspy.Module):
-    """Complete async pipeline for extracting all index tests from diagnostic accuracy papers."""
-    
+    """Complete async pipeline for extracting index test information."""
+
     def __init__(self, max_concurrent: int = 5):
         super().__init__()
-        self.test_counter = AsyncIndexTestCounter()
-        self.type_extractor = AsyncIndexTestTypeExtractor()
-        self.basic_extractor = AsyncIndexTestBasicExtractor()
-        self.methodology_extractor = AsyncIndexTestMethodologyExtractor()
-        self.analysis_extractor = AsyncIndexTestAnalysisExtractor()
-        self.numbers_extractor = AsyncIndexTestNumbersExtractor()
-        self.quality_extractor = AsyncIndexTestQualityExtractor()
+
+        self.index_test_type_extractor = AsyncIndexTestTypeExtractor()
+        self.brand_and_site_extractor = AsyncIndexTestBrandAndSiteExtractor()
+        self.specimen_collection_extractor = AsyncSpecimenCollectionExtractor()
+        self.technique_extractor = AsyncTechniqueAndAnalysisExtractor()
+        self.patients_lesions_extractor = AsyncPatientsLesionsIndexTestExtractor()
+        self.positivity_threshold_extractor = AsyncPositivityThresholdExtractor()
+        self.assessor_training_blinding_extractor = AsyncAssessorTrainingBlindingExtractor()
+        self.additional_comments_extractor = AsyncAdditionalCommentsExtractor()
+        self.combiner = AsyncIndexTestCombiner()
+
         self.max_concurrent = max_concurrent
         self._semaphore = None
-    
+
     def _get_semaphore(self):
         if self._semaphore is None:
             self._semaphore = asyncio.Semaphore(self.max_concurrent)
         return self._semaphore
-    
+
     async def forward(self, markdown_content: str):
-        """Extract all index test records from the paper."""
-        
-        # Step 1: Count tests
-        count_result = await self.test_counter(markdown_content)
-        num_tests = count_result.get("number_index_tests", 0)
-        
-        if num_tests == 0:
-            return dspy.Prediction(extracted_records=[])
-        
-        # Step 2: Extract all tests concurrently
-        tasks = []
-        for test_num in range(1, num_tests + 1):
-            task = self._process_single_test(markdown_content, test_num, num_tests)
-            tasks.append(task)
-        
-        all_records = await asyncio.gather(*tasks)
-        
-        return dspy.Prediction(extracted_records=all_records)
-    
-    async def _process_single_test(self, markdown_content: str, test_number: int, total_tests: int):
-        """Process a single index test with parallel extraction of all components."""
-        semaphore = self._get_semaphore()
-        
-        async with semaphore:
-            # Step 1: Extract type and basic info first to get test identifiers
-            type_task = self.type_extractor(markdown_content, test_number, total_tests)
-            basic_task = self.basic_extractor(markdown_content, test_number, total_tests)
-            
-            type_info, basic_info = await asyncio.gather(type_task, basic_task)
-            
-            test_name = basic_info.get("subform", f"Test {test_number}")
-            
-            # Step 2: Extract all other components in parallel
-            methodology_task = self.methodology_extractor(markdown_content, test_name)
-            analysis_task = self.analysis_extractor(markdown_content, test_name)
-            numbers_task = self.numbers_extractor(markdown_content, test_name)
-            quality_task = self.quality_extractor(markdown_content, test_name)
-            
-            methodology, analysis, numbers, quality = await asyncio.gather(
-                methodology_task, analysis_task, numbers_task, quality_task
-            )
-            
-            # Step 3: Build the type object structure
-            type_category = type_info.get("type_category", "other")
-            type_comment = type_info.get("type_comment", "")
-            
-            type_dict = {
-                "cytology": {
-                    "selected": type_category == "cytology",
-                    "comment": type_comment if type_category == "cytology" else ""
-                },
-                "vital_staining": {
-                    "selected": type_category == "vital_staining",
-                    "comment": type_comment if type_category == "vital_staining" else ""
-                },
-                "autofluorescence": {
-                    "selected": type_category == "autofluorescence",
-                    "comment": type_comment if type_category == "autofluorescence" else ""
-                },
-                "tissue_reflectance": {
-                    "selected": type_category == "tissue_reflectance",
-                    "comment": type_comment if type_category == "tissue_reflectance" else ""
-                },
-                "other": {
-                    "selected": type_category == "other",
-                    "comment": type_comment if type_category == "other" else ""
-                }
-            }
-            
-            # Step 4: Combine all extracted data into new JSON structure
-            structured_record = {
-                "type": type_dict,
-                "subform": basic_info.get("subform", ""),
-                "brand_name": basic_info.get("brand_name", ""),
-                "site_selection": methodology.get("site_selection", ""),
-                "specimen_collection": methodology.get("specimen_collection", ""),
-                "collection_device": methodology.get("collection_device", ""),
-                "technique": methodology.get("technique", ""),
-                "staining_procedure": methodology.get("staining_procedure", ""),
-                "sample_collection": methodology.get("sample_collection", ""),
-                "analysis_methods": analysis.get("analysis_methods", ""),
-                "ai_analysis": analysis.get("ai_analysis", ""),
-                "patients_received_n": numbers.get("patients_received_n", ""),
-                "patients_analyzed_n": numbers.get("patients_analyzed_n", ""),
-                "lesions_received_n": numbers.get("lesions_received_n", ""),
-                "lesions_analyzed_n": numbers.get("lesions_analyzed_n", ""),
-                "positivity_threshold": analysis.get("positivity_threshold", ""),
-                "positivity_threshold_transformed": analysis.get("positivity_threshold_transformed", ""),
-                "atypical_positive_negative": analysis.get("atypical_positive_negative", ""),
-                "assessor_training": quality.get("assessor_training", ""),
-                "assessor_blinding": quality.get("assessor_blinding", ""),
-                "examiner_blinding": quality.get("examiner_blinding", ""),
-                "additional_comments": quality.get("additional_comments", "")
-            }
-            
-            return structured_record
+        # Step 1: Extract index test type first (needed for context)
+        index_test_type = await self.index_test_type_extractor(markdown_content)
+        index_test_type_str = json.dumps(index_test_type)
+
+        # Step 2: Extract components that don't depend on index test type (parallel)
+        brand_and_site_task = self.brand_and_site_extractor(markdown_content)
+        patients_lesions_task = self.patients_lesions_extractor(markdown_content)
+        assessor_training_blinding_task = self.assessor_training_blinding_extractor(markdown_content)
+        additional_comments_task = self.additional_comments_extractor(markdown_content)
+
+        # Step 3: Extract components that need index test type context (parallel)
+        specimen_collection_task = self.specimen_collection_extractor(markdown_content, index_test_type_str)
+        technique_task = self.technique_extractor(markdown_content, index_test_type_str)
+        positivity_threshold_task = self.positivity_threshold_extractor(markdown_content, index_test_type_str)
+
+        (brand_and_site, patients_lesions, assessor_training_blinding, additional_comments,
+         specimen_collection, technique, positivity_threshold) = await asyncio.gather(
+            brand_and_site_task,
+            patients_lesions_task,
+            assessor_training_blinding_task,
+            additional_comments_task,
+            specimen_collection_task,
+            technique_task,
+            positivity_threshold_task
+        )
+
+        # Step 4: Combine all data
+        complete_index_test = await self.combiner(
+            index_test_type,
+            brand_and_site,
+            specimen_collection,
+            technique,
+            patients_lesions,
+            positivity_threshold,
+            assessor_training_blinding,
+            additional_comments
+        )
+
+        return dspy.Prediction(
+            index_test=complete_index_test,
+            success=True
+        )
+
+    async def __call__(self, markdown_content: str):
+        return await self.forward(markdown_content)
 
 
-class SyncIndexTestPipelineWrapper(dspy.Module):
-    """Synchronous wrapper for DSPy optimizer compatibility."""
-    
+class SyncIndexTestPipeline(dspy.Module):
+    """Synchronous wrapper for async index test pipeline."""
+
     def __init__(self):
         super().__init__()
         self.async_pipeline = AsyncIndexTestPipeline()
-    
+
+        # Expose extractors for optimizer access
+        self.index_test_type_extractor = self.async_pipeline.index_test_type_extractor
+        self.brand_and_site_extractor = self.async_pipeline.brand_and_site_extractor
+        self.specimen_collection_extractor = self.async_pipeline.specimen_collection_extractor
+        self.technique_extractor = self.async_pipeline.technique_extractor
+        self.patients_lesions_extractor = self.async_pipeline.patients_lesions_extractor
+        self.positivity_threshold_extractor = self.async_pipeline.positivity_threshold_extractor
+        self.assessor_training_blinding_extractor = self.async_pipeline.assessor_training_blinding_extractor
+        self.additional_comments_extractor = self.async_pipeline.additional_comments_extractor
+        self.combiner = self.async_pipeline.combiner
+
     def forward(self, markdown_content: str):
-        """Synchronous forward method."""
         try:
             loop = asyncio.get_running_loop()
             if loop.is_running():
@@ -348,13 +425,29 @@ class SyncIndexTestPipelineWrapper(dspy.Module):
                     import nest_asyncio
                     nest_asyncio.apply()
                 except ImportError:
-                    pass
+                    raise ImportError(
+                        "Please install nest_asyncio: pip install nest_asyncio")
         except RuntimeError:
             pass
-        
+
         self.async_pipeline._semaphore = None
         result = asyncio.run(self.async_pipeline(markdown_content))
         return result
-    
+
     def __deepcopy__(self, memo):
-        return SyncIndexTestPipelineWrapper()
+        return SyncIndexTestPipeline()
+
+
+__all__ = [
+    "AsyncIndexTestTypeExtractor",
+    "AsyncIndexTestBrandAndSiteExtractor",
+    "AsyncSpecimenCollectionExtractor",
+    "AsyncTechniqueAndAnalysisExtractor",
+    "AsyncPatientsLesionsIndexTestExtractor",
+    "AsyncPositivityThresholdExtractor",
+    "AsyncAssessorTrainingBlindingExtractor",
+    "AsyncAdditionalCommentsExtractor",
+    "AsyncIndexTestCombiner",
+    "AsyncIndexTestPipeline",
+    "SyncIndexTestPipeline",
+]

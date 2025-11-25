@@ -129,6 +129,7 @@ async def run_batch_extraction(md_dir: str, target_file: str, schema_runtime, cl
     print(f"\nProcessing {len(all_examples)} examples...\n")
 
     # Metrics collection
+    # Metrics collection
     f1_scores = []
     precision_scores = []
     recall_scores = []
@@ -144,31 +145,54 @@ async def run_batch_extraction(md_dir: str, target_file: str, schema_runtime, cl
 
     semantic_fields = schema_runtime.evaluator.semantic_fields
     exact_fields = schema_runtime.evaluator.exact_fields
-    # Run on all examples
-    for i, example in enumerate(all_examples):
-        print(f"\n{'='*50}")
-        print(
-            f"EXAMPLE {i+1}/{len(all_examples)}: {example.extracted_records[0].get('filename', 'Unknown')}")
-        print(f"{'='*50}")
 
-        markdown_content = example.markdown_content
-        ground_truth = example.extracted_records
-        filename = ground_truth[0].get('filename', 'Unknown')
+    # Concurrency control
+    from config import BATCH_CONCURRENCY
+    semaphore = asyncio.Semaphore(BATCH_CONCURRENCY)
+    
+    async def process_example(i, example):
+        async with semaphore:
+            print(f"\n{'='*50}")
+            print(f"STARTING EXAMPLE {i+1}/{len(all_examples)}: {example.extracted_records[0].get('filename', 'Unknown')}")
+            print(f"{'='*50}")
 
-        # Construct source file path
-        source_file = f"{md_dir}/{filename}_md/{filename}_md.json"
+            markdown_content = example.markdown_content
+            ground_truth = example.extracted_records
+            filename = ground_truth[0].get('filename', 'Unknown')
 
-        # Run extraction
-        result_dict = await run_async_extraction_and_evaluation(
-            markdown_content=markdown_content,
-            source_file=source_file,
-            one_study_records=ground_truth,
-            schema_runtime=schema_runtime,
-            override=False,
-            field_level_analysis=True,
-            print_field_table=False
-        )
+            # Construct source file path
+            source_file = f"{md_dir}/{filename}_md/{filename}_md.json"
 
+            # Run extraction
+            try:
+                result_dict = await run_async_extraction_and_evaluation(
+                    markdown_content=markdown_content,
+                    source_file=source_file,
+                    one_study_records=ground_truth,
+                    schema_runtime=schema_runtime,
+                    override=False,
+                    field_level_analysis=True,
+                    print_field_table=False,
+                    print_results=True
+                )
+                
+                # Log history and clear memory after EACH example to prevent bloat
+                log_history(clear_memory=True)
+                
+                return result_dict
+            except Exception as e:
+                print(f"Error processing {filename}: {e}")
+                return None
+
+    # Run on all examples in parallel
+    print(f"Processing with concurrency: {BATCH_CONCURRENCY}")
+    tasks = [process_example(i, ex) for i, ex in enumerate(all_examples)]
+    results = await asyncio.gather(*tasks)
+    
+    # Process results
+    valid_results = [r for r in results if r is not None]
+    
+    for result_dict in valid_results:
         # Collect metrics
         evaluation = result_dict['baseline_evaluation']
         field_counts = result_dict['field_counts']
@@ -184,10 +208,13 @@ async def run_batch_extraction(md_dir: str, target_file: str, schema_runtime, cl
                 aggregated_field_counts[field][key] += counts[key]
 
     # Calculate final metrics
-    avg_precision = sum(precision_scores) / len(precision_scores)
-    avg_recall = sum(recall_scores) / len(recall_scores)
-    avg_f1 = sum(f1_scores) / len(f1_scores)
-    avg_completeness = sum(completeness_scores) / len(completeness_scores)
+    if f1_scores:
+        avg_precision = sum(precision_scores) / len(precision_scores)
+        avg_recall = sum(recall_scores) / len(recall_scores)
+        avg_f1 = sum(f1_scores) / len(f1_scores)
+        avg_completeness = sum(completeness_scores) / len(completeness_scores)
+    else:
+        avg_precision = avg_recall = avg_f1 = avg_completeness = 0.0
 
     print(f"\n{'='*60}")
     print(f"FINAL SUMMARY ACROSS {len(f1_scores)} EXAMPLES")
@@ -209,7 +236,8 @@ async def run_batch_extraction(md_dir: str, target_file: str, schema_runtime, cl
             semantic_fields=semantic_fields,
             exact_fields=exact_fields,
             save_to_file=True,
-            output_dir=str(dashboard_dir)
+            output_dir=str(dashboard_dir),
+            schema_name=schema_runtime.schema.name
         )
         if result:
             summary_path, action_plan_path = result
@@ -225,12 +253,13 @@ async def run_batch_extraction(md_dir: str, target_file: str, schema_runtime, cl
             avg_f1=avg_f1,
             semantic_fields=semantic_fields,
             exact_fields=exact_fields,
-            save_to_file=False
+            save_to_file=False,
+            schema_name=schema_runtime.schema.name
         )
 
-    # Log history
+    # Final log flush
     print("\nLogging LLM history...")
-    log_history()
+    log_history(clear_memory=True)
     show_stats()
 
     print("\n" + "="*60)
@@ -263,9 +292,12 @@ def main():
     args = parser.parse_args()
 
     schema_definition = get_schema(args.schema)
-    schema_runtime = build_schema_runtime(schema_definition, target_file=args.target)
+    schema_runtime = None
 
     try:
+        schema_runtime = build_schema_runtime(
+            schema_definition, target_file=args.target)
+
         if args.mode == "single":
             if not args.source or not args.target:
                 print("Error: --source and --target are required for single mode")
@@ -280,7 +312,8 @@ def main():
             asyncio.run(run_batch_extraction(args.source, args.target,
                         schema_runtime, args.clear_cache, args.max_examples, args.save_dashboards))
     finally:
-        schema_runtime.close()
+        if schema_runtime is not None:
+            schema_runtime.close()
 
 
 if __name__ == "__main__":

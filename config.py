@@ -24,6 +24,10 @@ TEMPERATURE = 1.0  # Set to 1.0 to match notebook extraction
 EVALUATION_MODEL = "gemini/gemini-2.5-flash" # Set to flash for faster evaluation
 EVALUATION_TEMPERATURE = 0.0
 
+# Concurrency Settings
+BATCH_CONCURRENCY = 5  # Number of papers to process in parallel
+EVALUATION_CONCURRENCY = 20  # Number of concurrent semantic matching calls
+
 # Alternative models (uncomment to use)
 # DEFAULT_MODEL = "openai/gpt-5-mini-2025-08-07"
 # DEFAULT_MODEL = "anthropic/claude-sonnet-4-5-20250929"

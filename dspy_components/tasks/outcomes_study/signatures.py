@@ -216,7 +216,7 @@ class CombineOutcomesData(dspy.Signature):
     """Combine all extracted outcomes components into single comprehensive record."""
 
     linking_index_test: str = dspy.InputField(
-        desc="Index test name from ExtractLinkingIndexTest"
+        desc="Index test name from ExtractIndexTests"
     )
     outcome_target_condition: str = dspy.InputField(
         desc="Target condition from ExtractOutcomeTargetCondition"

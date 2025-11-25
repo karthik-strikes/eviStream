@@ -22,24 +22,23 @@ def set_log_file(csv_path: str, include_full_prompts: bool = False):
     _csv_path = csv_path
     _include_full_prompts = include_full_prompts
 
-    # Load existing hashes from CSV if it exists
-    if Path(csv_path).exists():
-        try:
-            df = pd.read_csv(csv_path)
-            if 'call_hash' in df.columns:
-                _processed_hashes = set(df['call_hash'].tolist())
-                print(
-                    f"Loaded {len(_processed_hashes)} existing records from {csv_path}")
-        except Exception as e:
-            print(f"Warning: Could not load existing CSV: {e}")
-    else:
+    # OPTIMIZATION: Do NOT load the entire CSV into memory.
+    # We will only track hashes for the CURRENT session to avoid duplicates within a run.
+    # If a run is restarted, we might log duplicates, but that's better than O(N) startup time.
+    _processed_hashes = set()
+    
+    if not Path(csv_path).exists():
         print(f"New log file will be created: {csv_path}")
         if include_full_prompts:
             print("  ⚠️  Full prompts will be logged (large file size)")
 
 
-def log_history():
-    """Log current DSPy history to CSV. Call this after running DSPy operations."""
+def log_history(clear_memory: bool = True):
+    """Log current DSPy history to CSV. Call this after running DSPy operations.
+    
+    Args:
+        clear_memory: If True, clears the LM history after logging to free RAM.
+    """
     global _processed_hashes, _csv_path
 
     # Get LM from dspy settings
@@ -50,7 +49,7 @@ def log_history():
         return 0
 
     if not hasattr(lm, 'history') or not lm.history:
-        print("No history found in language model")
+        # print("No history found in language model")
         return 0
 
     new_records = []
@@ -65,7 +64,7 @@ def log_history():
         call_hash = hashlib.md5(json.dumps(
             hash_content, sort_keys=True, default=str).encode()).hexdigest()
 
-        # Skip if already processed
+        # Skip if already processed IN THIS SESSION
         if call_hash in _processed_hashes:
             continue
 
@@ -117,10 +116,11 @@ def log_history():
         _processed_hashes.add(call_hash)
 
     if not new_records:
-        print("No new records to add")
+        if clear_memory:
+            lm.history.clear()
         return 0
 
-    # Save to CSV
+    # Save to CSV (Append mode)
     new_df = pd.DataFrame(new_records)
 
     if Path(_csv_path).exists():
@@ -128,6 +128,10 @@ def log_history():
     else:
         Path(_csv_path).parent.mkdir(parents=True, exist_ok=True)
         new_df.to_csv(_csv_path, index=False)
+        
+    # CRITICAL OPTIMIZATION: Clear memory after logging
+    if clear_memory:
+        lm.history.clear()
 
     return len(new_records)
 

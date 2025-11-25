@@ -35,7 +35,7 @@ def safe_json_parse(json_string, fallback=None):
             cleaned = re.sub(r"'([^']*)':", r'"\1":', cleaned)
             cleaned = re.sub(r":\s*'([^']*)'", r': "\1"', cleaned)
         
-        result = safe_json_parse(cleaned)
+        result = safe_json_parse(cleaned, fallback)
         if isinstance(result, str) and result.strip().startswith(("{", "[")):
             return safe_json_parse(result, fallback)
         return result

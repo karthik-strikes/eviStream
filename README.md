@@ -34,8 +34,8 @@ python run.py batch --source /path/to/md_directory --target /path/to/target.json
 2. Load markdown source + target JSON (data/loader.py)
    ↓
 3. Run Extraction (src/extractor.py)
-   → Use DSPy signatures (dspy_components/signatures.py)
-   → Execute with modules (dspy_components/modules.py)
+   → Use DSPy signatures (dspy_components/tasks/<task>/signatures.py)
+   → Execute with modules (dspy_components/tasks/<task>/modules.py)
    → Parse outputs (utils/json_parser.py)
    ↓
 4. Evaluate Results (src/evaluation.py)

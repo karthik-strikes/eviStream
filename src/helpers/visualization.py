@@ -423,7 +423,8 @@ def create_performance_dashboards(
     semantic_fields: List[str],
     exact_fields: List[str],
     save_to_file: bool = False,
-    output_dir: str = "./dashboards"
+    output_dir: str = "./dashboards",
+    schema_name: str = "default"
 ):
     """
     Generates two dashboard figures:
@@ -498,14 +499,13 @@ def create_performance_dashboards(
         output_path = Path(output_dir)
         output_path.mkdir(parents=True, exist_ok=True)
 
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now().strftime("%Y%m%d")
 
-        summary_path = output_path / f"dashboard_summary_{timestamp}.png"
+        summary_path = output_path / f"{schema_name}_summary_{timestamp}.png"
         fig1.savefig(summary_path, dpi=150, bbox_inches='tight')
         print(f"✓ Saved executive summary dashboard: {summary_path}")
 
-        action_plan_path = output_path / \
-            f"dashboard_action_plan_{timestamp}.png"
+        action_plan_path = output_path / f"{schema_name}_actions_{timestamp}.png"
         fig2.savefig(action_plan_path, dpi=150, bbox_inches='tight')
         print(f"✓ Saved action plan dashboard: {action_plan_path}")
 

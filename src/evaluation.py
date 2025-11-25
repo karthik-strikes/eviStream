@@ -64,7 +64,9 @@ class AsyncMedicalExtractionEvaluator:
             self.groupable_patterns = groupable_patterns or {}
 
         self.use_semantic = use_semantic
-        self.semaphore = asyncio.Semaphore(max_concurrent)
+        from config import EVALUATION_CONCURRENCY
+        effective_concurrency = max_concurrent or EVALUATION_CONCURRENCY
+        self.semaphore = asyncio.Semaphore(effective_concurrency)
 
         self.exact_fields = list(set(self.exact_fields) - {'Ref_ID', 'filename'})
 

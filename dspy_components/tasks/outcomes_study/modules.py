@@ -377,7 +377,7 @@ class SyncOutcomesPipeline(dspy.Module):
         self.async_pipeline = AsyncOutcomesPipeline()
 
         # Expose extractors for optimizer access
-        self.linking_index_test_extractor = self.async_pipeline.linking_index_test_extractor
+        self.index_tests_extractor = self.async_pipeline.index_tests_extractor
         self.target_condition_extractor = self.async_pipeline.target_condition_extractor
         self.confusion_matrix_extractor = self.async_pipeline.confusion_matrix_extractor
         self.sensitivity_specificity_extractor = self.async_pipeline.sensitivity_specificity_extractor

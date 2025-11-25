@@ -39,7 +39,8 @@ def build_schema_runtime(definition: SchemaDefinition, target_file: str = None) 
         default_csv_dir=DEFAULT_CSV_DIR,
         default_json_dir=DEFAULT_JSON_DIR,
         csv_filename=f"{definition.name}_evaluation_results.csv",
-        json_filename=f"{definition.name}_evaluation_results.json"
+        json_filename=f"{definition.name}_evaluation_results.json",
+        schema_name=definition.name
     )
     return SchemaRuntime(
         schema=definition,

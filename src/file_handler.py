@@ -15,22 +15,25 @@ class AsyncMedicalFileHandler:
     def __init__(self, default_output_dir: str = DEFAULT_OUTPUT_DIR, default_csv_dir: str = DEFAULT_CSV_DIR,
                  default_json_dir: str = DEFAULT_JSON_DIR,
                  csv_filename: str = "patient_population_evaluation_results.csv",
-                 json_filename: str = "patient_population_evaluation_results.json"):
+                 json_filename: str = "patient_population_evaluation_results.json",
+                 schema_name: str = "patient_population"):
         self.default_output_dir = default_output_dir
         self.default_csv_dir = default_csv_dir
         self.default_json_dir = default_json_dir
         self.csv_filename = csv_filename
         self.json_filename = json_filename
+        self.schema_name = schema_name
 
     def _generate_output_filename(self, source_file_path: str) -> str:
         """Generate output filename from source filename."""
         source_path = Path(source_file_path)
         source_name = source_path.stem
+        suffix = f"_{self.schema_name}" if self.schema_name else ""
 
         if source_name.endswith('_md'):
-            output_name = source_name[:-3] + '_patient_population'
+            output_name = source_name[:-3] + suffix
         else:
-            output_name = source_name + '_patient_population'
+            output_name = source_name + suffix
 
         return output_name + '.json'
 
