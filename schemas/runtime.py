@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 from typing import Any
 
-from config import DEFAULT_OUTPUT_DIR, DEFAULT_CSV_DIR, DEFAULT_JSON_DIR
-from src.evaluation import AsyncMedicalExtractionEvaluator
-from src.file_handler import AsyncMedicalFileHandler
+from core.config import DEFAULT_OUTPUT_DIR, DEFAULT_CSV_DIR, DEFAULT_JSON_DIR
+from core.evaluation import AsyncMedicalExtractionEvaluator
+from core.file_handler import AsyncMedicalFileHandler
 from schemas.base import SchemaDefinition
 
 

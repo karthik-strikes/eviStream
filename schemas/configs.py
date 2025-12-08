@@ -89,22 +89,20 @@ SCHEMA_CONFIGS: Dict[str, SchemaConfig] = {
 }
 
 
-_SCHEMA_DEFINITIONS: Dict[str, SchemaDefinition] = {
-    name: config.build_definition() for name, config in SCHEMA_CONFIGS.items()
-}
-
-
 def get_schema_definition(name: str) -> SchemaDefinition:
     """Return a SchemaDefinition by name."""
-    return _SCHEMA_DEFINITIONS[name]
+    # Build dynamically from SCHEMA_CONFIGS so new schemas are always seen
+    if name not in SCHEMA_CONFIGS:
+        raise KeyError(f"Schema '{name}' not found in SCHEMA_CONFIGS")
+    return SCHEMA_CONFIGS[name].build_definition()
 
 
 def get_all_schema_definitions() -> Dict[str, SchemaDefinition]:
-    """Return a shallow copy of all schema definitions."""
-    return dict(_SCHEMA_DEFINITIONS)
+    """Return all schema definitions built dynamically from SCHEMA_CONFIGS."""
+    # Build fresh from SCHEMA_CONFIGS each time so new schemas are always seen
+    return {name: config.build_definition() for name, config in SCHEMA_CONFIGS.items()}
 
 
 def list_schema_names() -> List[str]:
     """Helper for callers that only need the registered names."""
-    return sorted(_SCHEMA_DEFINITIONS.keys())
-
+    return sorted(SCHEMA_CONFIGS.keys())

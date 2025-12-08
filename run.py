@@ -14,10 +14,10 @@ from utils.cache_cleaner import clear_cache_directories
 from utils.logging import set_log_file, log_history, show_stats, log_execution_time
 from data.loader import *
 import time
-from src.extractor import run_async_extraction_and_evaluation
-from src.helpers.visualization import create_performance_dashboards
+from core.extractor import run_async_extraction_and_evaluation
+from utils.helpers.visualization import create_performance_dashboards
 from schemas import get_schema, build_schema_runtime, list_schemas
-from config import INCLUDE_FULL_PROMPTS_IN_HISTORY
+from core.config import INCLUDE_FULL_PROMPTS_IN_HISTORY, PROJECT_ROOT
 
 # Add eviStream to path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -35,7 +35,7 @@ async def run_single_extraction(source_file: str, target_file: str, schema_runti
     print("="*60)
     print("eviStream - Single Extraction Mode")
     print("="*60)
-    
+
     start_time = time.time()
 
     # Optional: clear caches
@@ -43,8 +43,10 @@ async def run_single_extraction(source_file: str, target_file: str, schema_runti
         print("\nClearing caches...")
         clear_cache_directories(cache_root=str(Path(__file__).parent))
 
-    # Set up logging
-    set_log_file("dspy_history.csv", include_full_prompts=INCLUDE_FULL_PROMPTS_IN_HISTORY)
+    # Set up logging (relative to project root)
+    history_csv = PROJECT_ROOT / "output" / "dspy_history.csv"
+    set_log_file(str(history_csv),
+                 include_full_prompts=INCLUDE_FULL_PROMPTS_IN_HISTORY)
 
     # Load data
     print(f"\nLoading source: {source_file}")
@@ -88,8 +90,9 @@ async def run_single_extraction(source_file: str, target_file: str, schema_runti
     print("\n" + "="*60)
     print("Single extraction completed!")
     print("="*60)
-    
-    log_execution_time(start_time, time.time(), "single", source_file, target_file, schema_runtime.schema.name)
+
+    log_execution_time(start_time, time.time(), "single",
+                       source_file, target_file, schema_runtime.schema.name)
 
 
 async def run_batch_extraction(md_dir: str, target_file: str, schema_runtime, clear_cache: bool = False, max_examples: int = None, save_dashboards: bool = False):
@@ -106,7 +109,7 @@ async def run_batch_extraction(md_dir: str, target_file: str, schema_runtime, cl
     print("="*60)
     print("eviStream - Batch Extraction Mode")
     print("="*60)
-    
+
     start_time = time.time()
 
     # Optional: clear caches
@@ -114,8 +117,10 @@ async def run_batch_extraction(md_dir: str, target_file: str, schema_runtime, cl
         print("\nClearing caches...")
         clear_cache_directories(cache_root=str(Path(__file__).parent))
 
-    # Set up logging
-    set_log_file("dspy_history_batch.csv", include_full_prompts=INCLUDE_FULL_PROMPTS_IN_HISTORY)
+    # Set up logging (relative to project root)
+    history_csv = PROJECT_ROOT / "output" / "dspy_history_batch.csv"
+    set_log_file(str(history_csv),
+                 include_full_prompts=INCLUDE_FULL_PROMPTS_IN_HISTORY)
 
     # Create examples
     print(f"\nCreating examples from: {md_dir}")
@@ -149,11 +154,12 @@ async def run_batch_extraction(md_dir: str, target_file: str, schema_runtime, cl
     # Concurrency control
     from config import BATCH_CONCURRENCY
     semaphore = asyncio.Semaphore(BATCH_CONCURRENCY)
-    
+
     async def process_example(i, example):
         async with semaphore:
             print(f"\n{'='*50}")
-            print(f"STARTING EXAMPLE {i+1}/{len(all_examples)}: {example.extracted_records[0].get('filename', 'Unknown')}")
+            print(
+                f"STARTING EXAMPLE {i+1}/{len(all_examples)}: {example.extracted_records[0].get('filename', 'Unknown')}")
             print(f"{'='*50}")
 
             markdown_content = example.markdown_content
@@ -175,10 +181,10 @@ async def run_batch_extraction(md_dir: str, target_file: str, schema_runtime, cl
                     print_field_table=False,
                     print_results=True
                 )
-                
+
                 # Log history and clear memory after EACH example to prevent bloat
                 log_history(clear_memory=True)
-                
+
                 return result_dict
             except Exception as e:
                 print(f"Error processing {filename}: {e}")
@@ -188,10 +194,10 @@ async def run_batch_extraction(md_dir: str, target_file: str, schema_runtime, cl
     print(f"Processing with concurrency: {BATCH_CONCURRENCY}")
     tasks = [process_example(i, ex) for i, ex in enumerate(all_examples)]
     results = await asyncio.gather(*tasks)
-    
+
     # Process results
     valid_results = [r for r in results if r is not None]
-    
+
     for result_dict in valid_results:
         # Collect metrics
         evaluation = result_dict['baseline_evaluation']
@@ -227,7 +233,7 @@ async def run_batch_extraction(md_dir: str, target_file: str, schema_runtime, cl
     # Generate dashboards
     print("\nGenerating performance dashboards...")
     if save_dashboards:
-        dashboard_dir = Path("./dashboards")
+        dashboard_dir = PROJECT_ROOT / "output" / "dashboards"
         result = create_performance_dashboards(
             aggregated_field_counts=dict(aggregated_field_counts),
             avg_precision=avg_precision,
@@ -265,8 +271,9 @@ async def run_batch_extraction(md_dir: str, target_file: str, schema_runtime, cl
     print("\n" + "="*60)
     print("Batch extraction completed!")
     print("="*60)
-    
-    log_execution_time(start_time, time.time(), "batch", md_dir, target_file, schema_runtime.schema.name)
+
+    log_execution_time(start_time, time.time(), "batch",
+                       md_dir, target_file, schema_runtime.schema.name)
 
 
 def main():

@@ -433,7 +433,15 @@ class AsyncMultipleOutcomesExtractor(dspy.Module):
         # Execute in parallel with concurrency control
         results = await asyncio.gather(*tasks)
 
-        return [result.outcomes for result in results if result.success]
+        # Extract records from each result - pipeline returns 'extracted_records' field
+        outcome_records = []
+        for result in results:
+            if result.success and hasattr(result, 'extracted_records'):
+                if isinstance(result.extracted_records, list):
+                    outcome_records.extend(result.extracted_records)
+                else:
+                    outcome_records.append(result.extracted_records)
+        return outcome_records
 
     async def __call__(self, markdown_content: str, num_outcomes: int = 1):
         return await self.forward(markdown_content, num_outcomes)

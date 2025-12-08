@@ -3,7 +3,7 @@ import shutil
 import errno
 from typing import Iterable
 
-from config import CACHE_DIRS
+from core.config import CACHE_DIRS
 
 
 def _iter_children(path: Path) -> Iterable[Path]:

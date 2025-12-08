@@ -1,7 +1,7 @@
 import dspy
 from dotenv import load_dotenv
 
-from config import DEFAULT_MODEL, MAX_TOKENS, TEMPERATURE
+from core.config import DEFAULT_MODEL, MAX_TOKENS, TEMPERATURE
 
 load_dotenv()
 

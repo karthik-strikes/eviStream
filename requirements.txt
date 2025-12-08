@@ -10,5 +10,6 @@ python-dotenv
 scipy
 aiofiles
 diskcache
+supabase
 
 

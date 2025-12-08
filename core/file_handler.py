@@ -4,9 +4,10 @@ import aiofiles
 import pandas as pd
 from pathlib import Path
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
-from config import DEFAULT_OUTPUT_DIR, DEFAULT_CSV_DIR, DEFAULT_JSON_DIR
+from core.config import DEFAULT_OUTPUT_DIR, DEFAULT_CSV_DIR, DEFAULT_JSON_DIR, USE_SUPABASE
+from utils.supabase_client import get_supabase_client
 
 
 class AsyncMedicalFileHandler:
@@ -23,6 +24,9 @@ class AsyncMedicalFileHandler:
         self.csv_filename = csv_filename
         self.json_filename = json_filename
         self.schema_name = schema_name
+        self.supabase_client = get_supabase_client() if USE_SUPABASE else None
+        print("Supabase Client:")
+        print(self.supabase_client)
 
     def _generate_output_filename(self, source_file_path: str) -> str:
         """Generate output filename from source filename."""
@@ -75,6 +79,20 @@ class AsyncMedicalFileHandler:
 
             print(
                 f"Successfully saved {len(extracted_records)} records to: {output_path}")
+
+            # Optionally save to Supabase
+            if self.supabase_client and self.supabase_client.is_available():
+                metadata = {
+                    "output_file": str(output_path),
+                    "pipeline_version": "DSPy_Async_1.0"
+                }
+                await self.supabase_client.save_extracted_records(
+                    extracted_records=extracted_records,
+                    source_file=source_file_path,
+                    schema_name=self.schema_name,
+                    metadata=metadata
+                )
+
             return str(output_path)
 
         except Exception as e:
@@ -176,6 +194,16 @@ class AsyncMedicalFileHandler:
             async with aiofiles.open(csv_path, 'a', encoding='utf-8') as f:
                 await f.write(csv_content)
 
+        # Optionally save evaluation details to Supabase
+        if self.supabase_client and self.supabase_client.is_available():
+            await self.supabase_client.save_evaluation_details(
+                baseline_results=baseline_results,
+                ground_truth=ground_truth,
+                matches=matches,
+                source_file=source_file,
+                schema_name=self.schema_name
+            )
+
         return str(csv_path)
 
     async def save_evaluation_to_json(self, evaluation_results: Dict, source_file: str, json_path: str = None):
@@ -218,6 +246,14 @@ class AsyncMedicalFileHandler:
         # Save asynchronously
         async with aiofiles.open(json_path, 'w') as f:
             await f.write(json.dumps(data, indent=2))
+
+        # Optionally save to Supabase
+        if self.supabase_client and self.supabase_client.is_available():
+            await self.supabase_client.save_evaluation_metrics(
+                evaluation_results=evaluation_results,
+                source_file=source_file,
+                schema_name=self.schema_name
+            )
 
         # print(f"Results saved to: {json_path}")
         return json_path
