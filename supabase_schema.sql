@@ -234,3 +234,74 @@ SELECT 'project_extractions', COUNT(*) FROM project_extractions;
 
 -- After running this, the "unrestricted" warning should disappear
 -- and data should be able to be inserted into the tables
+
+
+-- Allow NULL values for schema_name column
+ALTER TABLE project_forms 
+ALTER COLUMN schema_name DROP NOT NULL;
+
+-- Allow NULL values for task_dir column
+ALTER TABLE project_forms 
+ALTER COLUMN task_dir DROP NOT NULL;
+
+
+
+-- Add Missing Table: llm_history
+-- Run this in Supabase SQL Editor
+
+CREATE TABLE IF NOT EXISTS llm_history (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    call_hash TEXT NOT NULL,
+    call_uuid TEXT,
+    call_timestamp TIMESTAMPTZ,
+    model TEXT,
+    cost FLOAT,
+    prompt_tokens INTEGER,
+    completion_tokens INTEGER,
+    total_tokens INTEGER,
+    cache_hit BOOLEAN DEFAULT false,
+    messages JSONB,
+    system_prompt TEXT,
+    user_prompt TEXT,
+    assistant_response TEXT,
+    source_file TEXT,
+    schema_name TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes
+CREATE INDEX IF NOT EXISTS idx_llm_history_call_hash ON llm_history(call_hash);
+CREATE INDEX IF NOT EXISTS idx_llm_history_timestamp ON llm_history(call_timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_llm_history_source_file ON llm_history(source_file);
+
+-- RLS Policy
+ALTER TABLE llm_history ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow all operations" ON llm_history;
+CREATE POLICY "Allow all operations" ON llm_history FOR ALL USING (true);
+
+
+-- Create table for storing workflow states during human review
+-- Run this in your Supabase SQL editor
+
+CREATE TABLE IF NOT EXISTS workflow_states (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    thread_id TEXT UNIQUE NOT NULL,
+    workflow_state JSONB NOT NULL,
+    saved_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    metadata JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Indexes for faster lookup
+CREATE INDEX IF NOT EXISTS idx_workflow_states_thread_id ON workflow_states(thread_id);
+CREATE INDEX IF NOT EXISTS idx_workflow_states_saved_at ON workflow_states(saved_at DESC);
+
+-- Comment
+COMMENT ON TABLE workflow_states IS 'Stores workflow states for human-in-the-loop review process';
+COMMENT ON COLUMN workflow_states.thread_id IS 'Unique thread ID for the workflow (e.g., form_uuid)';
+COMMENT ON COLUMN workflow_states.workflow_state IS 'Complete workflow state including form_data, decomposition, etc.';
+COMMENT ON COLUMN workflow_states.saved_at IS 'When this state was saved';
+COMMENT ON COLUMN workflow_states.metadata IS 'Additional metadata like stage, task_name, etc.';
+
+

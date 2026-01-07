@@ -142,81 +142,79 @@ def log_history(clear_memory: bool = True, save_to_supabase: bool = True, source
     if save_to_supabase:
         try:
             from utils.supabase_client import get_supabase_client
-            from core.config import USE_SUPABASE
 
-            if USE_SUPABASE:
-                client = get_supabase_client()
-                if client and client.is_available():
-                    # Save each call to Supabase synchronously (simpler, no async issues)
-                    saved_count = 0
-                    for call_data in new_call_data:
-                        try:
-                            # Use synchronous save method
+            client = get_supabase_client()
+            if client and client.is_available():
+                # Save each call to Supabase synchronously (simpler, no async issues)
+                saved_count = 0
+                for call_data in new_call_data:
+                    try:
+                        # Use synchronous save method
 
-                            # Extract messages
-                            messages = call_data.get('messages', [])
-                            system_msg = next(
-                                (m.get('content', '') for m in messages if m.get('role') == 'system'), '')
-                            user_msg = next(
-                                (m.get('content', '') for m in messages if m.get('role') == 'user'), '')
+                        # Extract messages
+                        messages = call_data.get('messages', [])
+                        system_msg = next(
+                            (m.get('content', '') for m in messages if m.get('role') == 'system'), '')
+                        user_msg = next(
+                            (m.get('content', '') for m in messages if m.get('role') == 'user'), '')
 
-                            # Extract response
-                            response_obj = call_data.get('response', {})
-                            assistant_response = ""
-                            if hasattr(response_obj, 'choices') and response_obj.choices:
-                                assistant_response = response_obj.choices[0].message.content
+                        # Extract response
+                        response_obj = call_data.get('response', {})
+                        assistant_response = ""
+                        if hasattr(response_obj, 'choices') and response_obj.choices:
+                            assistant_response = response_obj.choices[0].message.content
 
-                            # Extract usage
-                            usage = call_data.get('usage', {})
-                            if isinstance(usage, dict):
-                                prompt_tokens = usage.get('prompt_tokens', 0)
-                                completion_tokens = usage.get(
-                                    'completion_tokens', 0)
-                                total_tokens = usage.get('total_tokens', 0)
-                            else:
-                                prompt_tokens = completion_tokens = total_tokens = 0
+                        # Extract usage
+                        usage = call_data.get('usage', {})
+                        if isinstance(usage, dict):
+                            prompt_tokens = usage.get('prompt_tokens', 0)
+                            completion_tokens = usage.get(
+                                'completion_tokens', 0)
+                            total_tokens = usage.get('total_tokens', 0)
+                        else:
+                            prompt_tokens = completion_tokens = total_tokens = 0
 
-                            # Generate unique hash
-                            hash_content = {
-                                'messages': messages,
-                                'timestamp': call_data.get('timestamp', ''),
-                                'uuid': call_data.get('uuid', ''),
-                            }
-                            call_hash = hashlib.md5(json.dumps(
-                                hash_content, sort_keys=True, default=str).encode()).hexdigest()
+                        # Generate unique hash
+                        hash_content = {
+                            'messages': messages,
+                            'timestamp': call_data.get('timestamp', ''),
+                            'uuid': call_data.get('uuid', ''),
+                        }
+                        call_hash = hashlib.md5(json.dumps(
+                            hash_content, sort_keys=True, default=str).encode()).hexdigest()
 
-                            # Prepare data for insertion
-                            data = {
-                                "call_hash": call_hash,
-                                "call_uuid": call_data.get('uuid', ''),
-                                "call_timestamp": call_data.get('timestamp'),
-                                "model": call_data.get('model', ''),
-                                "cost": call_data.get('cost', 0.0),
-                                "prompt_tokens": prompt_tokens,
-                                "completion_tokens": completion_tokens,
-                                "total_tokens": total_tokens,
-                                "cache_hit": getattr(response_obj, 'cache_hit', False) if response_obj else False,
-                                "messages": messages,
-                                "system_prompt": system_msg,
-                                "user_prompt": user_msg,
-                                "assistant_response": assistant_response,
-                                "source_file": source_file,
-                                "schema_name": schema_name,
-                                "metadata": {}
-                            }
+                        # Prepare data for insertion
+                        data = {
+                            "call_hash": call_hash,
+                            "call_uuid": call_data.get('uuid', ''),
+                            "call_timestamp": call_data.get('timestamp'),
+                            "model": call_data.get('model', ''),
+                            "cost": call_data.get('cost', 0.0),
+                            "prompt_tokens": prompt_tokens,
+                            "completion_tokens": completion_tokens,
+                            "total_tokens": total_tokens,
+                            "cache_hit": getattr(response_obj, 'cache_hit', False) if response_obj else False,
+                            "messages": messages,
+                            "system_prompt": system_msg,
+                            "user_prompt": user_msg,
+                            "assistant_response": assistant_response,
+                            "source_file": source_file,
+                            "schema_name": schema_name,
+                            "metadata": {}
+                        }
 
-                            # Insert into 'llm_history' table (use upsert to handle duplicates)
-                            result = client.client.table("llm_history").upsert(
-                                data, on_conflict="call_hash").execute()
-                            if result.data:
-                                saved_count += 1
-                        except Exception as e:
-                            # Silently skip failed saves
-                            pass
+                        # Insert into 'llm_history' table (use upsert to handle duplicates)
+                        result = client.client.table("llm_history").upsert(
+                            data, on_conflict="call_hash").execute()
+                        if result.data:
+                            saved_count += 1
+                    except Exception as e:
+                        # Silently skip failed saves
+                        pass
 
-                    if saved_count > 0:
-                        print(
-                            f"✓ Saved {saved_count} LLM history records to Supabase")
+                if saved_count > 0:
+                    print(
+                        f"✓ Saved {saved_count} LLM history records to Supabase")
         except Exception as e:
             # Silently fail to avoid disrupting the pipeline
             pass

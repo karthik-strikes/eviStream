@@ -1,50 +1,45 @@
+"""
+Schema Runtime Builder
+
+Builds runtime components (pipeline) from DynamicSchemaConfig.
+"""
+
 from dataclasses import dataclass
 from typing import Any
-
-from core.config import DEFAULT_OUTPUT_DIR, DEFAULT_CSV_DIR, DEFAULT_JSON_DIR
-from core.evaluation import AsyncMedicalExtractionEvaluator
-from core.file_handler import AsyncMedicalFileHandler
-from schemas.base import SchemaDefinition
+from .config import DynamicSchemaConfig
 
 
 @dataclass
 class SchemaRuntime:
-    """Runtime components for a specific schema."""
-    schema: SchemaDefinition
+    """
+    Runtime components for a schema.
+
+    Contains the pipeline that executes extraction following
+    the decomposition pipeline structure.
+    """
+    config: DynamicSchemaConfig
     pipeline: Any
-    evaluator: Any
-    file_handler: Any
 
     def close(self) -> None:
-        """Release any resources held by runtime components."""
-        self.evaluator.close()
+        """Cleanup if needed."""
+        pass
 
 
-def build_schema_runtime(definition: SchemaDefinition, target_file: str = None) -> SchemaRuntime:
+def build_runtime(config: DynamicSchemaConfig) -> SchemaRuntime:
     """
-    Instantiate pipeline, evaluator, and file handler for a schema definition.
+    Build runtime from DynamicSchemaConfig.
+
+    Creates pipeline that follows the pipeline_stages structure
+    from decomposition, respecting dependencies and execution order.
+
+    Args:
+        config: DynamicSchemaConfig with pipeline structure
+
+    Returns:
+        SchemaRuntime with configured pipeline
     """
-    pipeline = definition.pipeline_factory()
-    evaluator = AsyncMedicalExtractionEvaluator(
-        signature_class=definition.signature_class,
-        output_field_name=definition.output_field_name,
-        field_cache_file=definition.field_cache_file,
-        target_file=target_file,
-        use_semantic=True,
-        max_concurrent=10,
-        cache_dir="."
-    )
-    file_handler = AsyncMedicalFileHandler(
-        default_output_dir=DEFAULT_OUTPUT_DIR,
-        default_csv_dir=DEFAULT_CSV_DIR,
-        default_json_dir=DEFAULT_JSON_DIR,
-        csv_filename=f"{definition.name}_evaluation_results.csv",
-        json_filename=f"{definition.name}_evaluation_results.json",
-        schema_name=definition.name
-    )
+    pipeline = config.build_pipeline()
     return SchemaRuntime(
-        schema=definition,
-        pipeline=pipeline,
-        evaluator=evaluator,
-        file_handler=file_handler
+        config=config,
+        pipeline=pipeline
     )

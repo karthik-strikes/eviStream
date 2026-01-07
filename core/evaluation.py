@@ -13,7 +13,7 @@ from scipy.optimize import linear_sum_assignment
 from sklearn.metrics import cohen_kappa_score
 from dspy_components.utility_signatures import SemanticMatcher
 from core.config import EVALUATION_MODEL, EVALUATION_TEMPERATURE
-
+from utils.lm_config import get_dspy_model
 
 from core.field_extractor import extract_fields_from_signature
 from pathlib import Path
@@ -101,8 +101,10 @@ class AsyncMedicalExtractionEvaluator:
         self._matching_cache = dc.Cache(matching_cache_path)
 
         # Initialize LLM once for reuse
-        self._lm = dspy.LM(
-            EVALUATION_MODEL, temperature=EVALUATION_TEMPERATURE) if use_semantic else None
+        self._lm = get_dspy_model(
+            model_name=EVALUATION_MODEL,
+            temperature=EVALUATION_TEMPERATURE
+        ) if use_semantic else None
 
     def _load_or_extract_fields(self, signature_class, output_field_name, field_cache_file, target_file):
         """Load fields from cache or extract from signature."""

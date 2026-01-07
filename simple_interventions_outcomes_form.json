@@ -1,0 +1,43 @@
+{
+  "form_name": "InterventionsAndOutcomes",
+  "form_description": "Extract interventions and their associated outcomes from clinical trial papers",
+  "fields": [
+    {
+      "field_name": "study_title",
+      "field_type": "text",
+      "field_control_type": "text",
+      "field_description": "Title of the clinical study",
+      "example": "Randomized controlled trial of oral rinse for plaque reduction",
+      "extraction_hints": "Look in the title, abstract, or introduction section",
+      "required": true
+    },
+    {
+      "field_name": "interventions",
+      "field_type": "text",
+      "field_control_type": "text",
+      "field_description": "List of interventions tested in the study. Each intervention should include name, type, and dosage if available",
+      "example": "Drug A: 10mg twice daily, Placebo: matching tablets",
+      "extraction_hints": "Look in methods section, intervention description. Extract all interventions mentioned",
+      "required": true
+    },
+    {
+      "field_name": "outcomes",
+      "field_type": "text",
+      "field_control_type": "text",
+      "field_description": "List of outcomes measured in the study. Include primary and secondary outcomes with their results if available",
+      "example": "Primary: Plaque index reduction (mean 0.45, SD 0.12). Secondary: Gingival bleeding (reduced by 30%)",
+      "extraction_hints": "Look in results section, outcomes table, or methods section where outcomes are pre-specified",
+      "required": true
+    },
+    {
+      "field_name": "total_participants",
+      "field_type": "number",
+      "field_control_type": "number",
+      "field_description": "Total number of participants enrolled",
+      "example": 150,
+      "extraction_hints": "Look in methods section, participant flow, or results section",
+      "required": false
+    }
+  ]
+}
+

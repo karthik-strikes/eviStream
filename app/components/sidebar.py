@@ -1,14 +1,13 @@
 """
 Sidebar component for project navigation and creation
 """
+from components.helpers import create_project, get_project
+import streamlit as st
 import sys
 from pathlib import Path
 
 # Setup Python path FIRST - before any local imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-
-import streamlit as st
-from components.helpers import create_project, get_project
 
 
 def render_sidebar():
@@ -26,16 +25,26 @@ def render_sidebar():
             p["id"]: p["name"] for p in st.session_state.projects_data["projects"]
         }
 
-        selected_project_id = st.selectbox(
-            "Active project",
-            options=list(project_names.keys()) if project_names else [],
-            format_func=lambda x: project_names[x],
-            index=None if project_names else None,
-            placeholder="No project selected",
-            label_visibility="collapsed",
+        project_ids = list(project_names.keys())
+        select_options = [None] + project_ids
+        current_id = st.session_state.get("current_project_id")
+        select_index = (
+            select_options.index(
+                current_id) if current_id in project_names else 0
         )
 
-        if selected_project_id:
+        selected_project_id = st.selectbox(
+            "Active project",
+            options=select_options,
+            format_func=lambda x: "No project selected"
+            if x is None
+            else project_names.get(x, str(x)),
+            index=select_index,
+            label_visibility="collapsed",
+            key="active_project_select",
+        )
+
+        if selected_project_id is not None:
             st.session_state.current_project_id = selected_project_id
 
         st.markdown('<div class="evi-sidebar-divider"></div>',
@@ -47,6 +56,7 @@ def render_sidebar():
                 "Short description",
                 placeholder="e.g., Oral cancer RCTs · pain outcomes",
                 height=70,
+                key="sidebar_new_project_description",
             )
 
             create_col1, create_col2 = st.columns([1.2, 1])

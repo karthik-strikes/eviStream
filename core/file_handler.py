@@ -6,7 +6,7 @@ from pathlib import Path
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 
-from core.config import DEFAULT_OUTPUT_DIR, DEFAULT_CSV_DIR, DEFAULT_JSON_DIR, USE_SUPABASE
+from core.config import DEFAULT_OUTPUT_DIR, DEFAULT_CSV_DIR, DEFAULT_JSON_DIR
 from utils.supabase_client import get_supabase_client
 
 
@@ -24,7 +24,7 @@ class AsyncMedicalFileHandler:
         self.csv_filename = csv_filename
         self.json_filename = json_filename
         self.schema_name = schema_name
-        self.supabase_client = get_supabase_client() if USE_SUPABASE else None
+        self.supabase_client = get_supabase_client()
         print("Supabase Client:")
         print(self.supabase_client)
 

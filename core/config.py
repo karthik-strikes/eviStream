@@ -58,7 +58,6 @@ EVALUATION_CONCURRENCY = 20  # Number of concurrent semantic matching calls
 # Supabase is used as a metadata store, while heavy artifacts like markdown
 # and extracted JSON continue to live on the local filesystem
 # (e.g. under `storage/processed/extracted_pdfs`).
-USE_SUPABASE = os.getenv("USE_SUPABASE", "false").lower() == "true"
 # e.g., "https://your-project.supabase.co"
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")  # Your Supabase anon/service key

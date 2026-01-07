@@ -4,14 +4,11 @@ Documents Tab Content - Modularized (non-Streamlit page module)
 
 import sys
 from pathlib import Path
-import uuid
 
 import streamlit as st
 
 from components.pdf_viewer import display_pdf_viewer
 from utils import project_repository as proj_repo
-from core.config import USE_SUPABASE
-from components.helpers import save_projects
 
 
 # Ensure project root is on sys.path
@@ -72,37 +69,21 @@ def render_documents_tab(current_project):
                                 f.write(file.getbuffer())
 
                             try:
-                                if USE_SUPABASE:
-                                    unique_name = result.get("unique_filename")
-                                    markdown_json_path = (
-                                        Path(processor.output_dir)
-                                        / unique_name
-                                        / f"{unique_name}.json"
-                                    )
-                                    proj_repo.add_document(
-                                        current_project["id"],
-                                        {
-                                            "filename": file.name,
-                                            "unique_filename": unique_name,
-                                            "pdf_storage_path": str(temp_path),
-                                            "markdown_path": str(markdown_json_path),
-                                        },
-                                    )
-                                else:
-                                    current_project.setdefault("pdfs", []).append(
-                                        {
-                                            "id": str(uuid.uuid4())[:8],
-                                            "filename": file.name,
-                                            "unique_filename": result.get(
-                                                "unique_filename"
-                                            ),
-                                            "markdown_content": processor.get_markdown_content(
-                                                result
-                                            ),
-                                            "temp_path": str(temp_path),
-                                        }
-                                    )
-                                    save_projects(st.session_state.projects_data)
+                                unique_name = result.get("unique_filename")
+                                markdown_json_path = (
+                                    Path(processor.output_dir)
+                                    / unique_name
+                                    / f"{unique_name}.json"
+                                )
+                                proj_repo.add_document(
+                                    current_project["id"],
+                                    {
+                                        "filename": file.name,
+                                        "unique_filename": unique_name,
+                                        "pdf_storage_path": str(temp_path),
+                                        "markdown_path": str(markdown_json_path),
+                                    },
+                                )
                                 processed += 1
                             except Exception as e:
                                 st.warning(
@@ -149,7 +130,8 @@ def render_documents_tab(current_project):
                             use_container_width=True,
                         ):
                             if pdf.get("temp_path") and Path(pdf["temp_path"]).exists():
-                                display_pdf_viewer(pdf["temp_path"], height=600)
+                                display_pdf_viewer(
+                                    pdf["temp_path"], height=600)
                             else:
                                 st.warning("Cached PDF path not found.")
                     with cols[1]:
@@ -163,8 +145,3 @@ def render_documents_tab(current_project):
             st.info("No PDFs uploaded for this project yet.")
 
         st.markdown("</div>", unsafe_allow_html=True)
-
-
-
-
-

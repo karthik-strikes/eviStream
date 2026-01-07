@@ -7,7 +7,7 @@ import os
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 from supabase import create_client, Client
-from core.config import SUPABASE_URL, SUPABASE_KEY, USE_SUPABASE
+from core.config import SUPABASE_URL, SUPABASE_KEY
 
 
 class SupabaseClient:
@@ -428,6 +428,81 @@ class SupabaseClient:
             # print(f"⚠️ Error saving LLM history to Supabase: {e}")
             return None
 
+    async def save_workflow_state(
+        self,
+        thread_id: str,
+        workflow_state: Dict[str, Any],
+        metadata: Optional[Dict] = None
+    ) -> Optional[str]:
+        """
+        Save workflow state to Supabase for human review resume.
+
+        Args:
+            thread_id: Unique thread ID for the workflow
+            workflow_state: Complete workflow state dict
+            metadata: Optional metadata about the workflow
+
+        Returns:
+            UUID of inserted/updated record or None if failed
+        """
+        if not self.is_available():
+            return None
+
+        try:
+            data = {
+                "thread_id": thread_id,
+                "workflow_state": workflow_state,
+                "saved_at": datetime.now().isoformat(),
+                "metadata": metadata or {}
+            }
+
+            # Upsert to handle updates to same thread_id
+            result = self.client.table("workflow_states").upsert(
+                data, on_conflict="thread_id").execute()
+
+            if result.data:
+                record_id = result.data[0].get("id")
+                print(
+                    f"✓ Saved workflow state to Supabase (thread: {thread_id})")
+                return record_id
+            return None
+
+        except Exception as e:
+            print(f"❌ Error saving workflow state to Supabase: {e}")
+            return None
+
+    def get_workflow_state(
+        self,
+        thread_id: str
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Retrieve workflow state from Supabase.
+
+        Args:
+            thread_id: Unique thread ID for the workflow
+
+        Returns:
+            Workflow state dict or None if not found
+        """
+        if not self.is_available():
+            return None
+
+        try:
+            result = self.client.table("workflow_states").select(
+                "*").eq("thread_id", thread_id).execute()
+
+            if result.data and len(result.data) > 0:
+                print(
+                    f"✓ Retrieved workflow state from Supabase (thread: {thread_id})")
+                return result.data[0].get("workflow_state")
+            else:
+                print(f"⚠️ No workflow state found for thread: {thread_id}")
+                return None
+
+        except Exception as e:
+            print(f"❌ Error retrieving workflow state from Supabase: {e}")
+            return None
+
 
 # Global Supabase client instance
 _supabase_client: Optional[SupabaseClient] = None
@@ -437,8 +512,6 @@ def get_supabase_client() -> Optional[SupabaseClient]:
     """Get or create the global Supabase client instance."""
     global _supabase_client
 
-    if USE_SUPABASE:
-        if _supabase_client is None:
-            _supabase_client = SupabaseClient()
-        return _supabase_client
-    return None
+    if _supabase_client is None:
+        _supabase_client = SupabaseClient()
+    return _supabase_client

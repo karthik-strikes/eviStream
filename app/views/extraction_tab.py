@@ -39,7 +39,7 @@ def render_extraction_tab(current_project):
         st.markdown("</div>", unsafe_allow_html=True)
         return
 
-    from schemas.registry import get_schema
+    from schemas import get_schema, build_runtime
 
     sel_col1, sel_col2 = st.columns([1, 1.3])
 
@@ -77,8 +77,48 @@ def render_extraction_tab(current_project):
             status = st.empty()
 
             try:
-                schema_def = get_schema(selected_form["schema_name"])
-                pipeline = schema_def.pipeline_factory()
+                schema_name = selected_form["schema_name"]
+
+                # Check if schema is registered, if not try to re-register it
+                from schemas import list_schemas, get_schema
+                available_schemas = list_schemas()
+
+                if schema_name not in available_schemas:
+                    # Schema not in registry - try to re-register it
+                    from core.generators.task_utils import register_dynamic_schema
+                    from utils import project_repository as proj_repo
+
+                    project_id = current_project.get("id")
+                    form_id = selected_form.get("id")
+                    form = proj_repo.get_form(project_id, form_id)
+
+                    if form:
+                        form_data = {
+                            "form_name": form.get("form_name") or form.get("name"),
+                            "description": form.get("form_description") or form.get("description"),
+                            "fields": form.get("fields", [])
+                        }
+                        try:
+                            actual_schema_name = register_dynamic_schema(
+                                project_id, form_id, form_data)
+                            schema_name = actual_schema_name
+                            # Update DB with correct schema_name
+                            proj_repo.update_form(project_id, form_id, {
+                                                  "schema_name": actual_schema_name})
+                            st.info(
+                                f"Re-registered schema as: {actual_schema_name}")
+                        except Exception as e:
+                            st.error(f"Could not re-register schema: {e}")
+                            raise ValueError(
+                                f"Schema '{schema_name}' not found. Please regenerate the form.")
+                    else:
+                        raise ValueError(
+                            f"Schema '{schema_name}' not found. Available: {', '.join(available_schemas)}. "
+                            f"Please regenerate the form to fix this.")
+
+                schema_config = get_schema(schema_name)
+                schema_runtime = build_runtime(schema_config)
+                pipeline = schema_runtime.pipeline
                 results = []
 
                 for i, pdf in enumerate(selected_pdfs):
@@ -90,7 +130,19 @@ def render_extraction_tab(current_project):
                             result = asyncio.run(maybe_coro)
                         else:
                             result = maybe_coro
-                        data = {k: v for k, v in result.items() if not k.startswith("_")}
+
+                        # Handle result - should be a dict from StagedPipeline
+                        if isinstance(result, dict):
+                            data = {k: v for k, v in result.items()
+                                    if not k.startswith("_")}
+                        elif hasattr(result, '__dict__'):
+                            # Fallback: convert dspy.Prediction or other objects to dict
+                            data = {k: v for k, v in result.__dict__.items(
+                            ) if not k.startswith("_")}
+                        else:
+                            # Fallback: wrap in dict
+                            data = {"result": result}
+
                         results.append(
                             {
                                 "pdf": pdf["filename"],
@@ -102,14 +154,9 @@ def render_extraction_tab(current_project):
                     progress.progress((i + 1) / len(selected_pdfs))
 
                 st.session_state.last_results = results
-                status.success("Extraction complete.")
+
                 st.success(f"Extracted data from {len(results)} document(s).")
             except Exception as e:
                 st.error(f"Error during extraction: {e}")
 
     st.markdown("</div>", unsafe_allow_html=True)
-
-
-
-
-

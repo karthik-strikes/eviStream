@@ -1,0 +1,659 @@
+{
+  "project_id": "c78b95ef-831b-4e84-bc73-067bc3919518",
+  "form_id": "74df1fa3-fe93-426a-82e3-49f505e83b53",
+  "form_data": {
+    "form_name": "Pnt",
+    "form_description": "Extract comprehensive patient medical history, current conditions, medications, and clinical assessments from medical records",
+    "fields": [
+      {
+        "field_name": "female_patient_age_mean",
+        "field_type": "number",
+        "field_control_type": "number",
+        "field_description": "Patient's age in years",
+        "example": 67,
+        "extraction_hints": "Look in patient demographics or header section",
+        "required": true
+      },
+      {
+        "field_name": "most_patient_gender",
+        "field_type": "enum",
+        "field_control_type": "dropdown",
+        "field_description": "Patient's gender",
+        "options": [
+          "Male",
+          "Female",
+          "Other",
+          "Not specified"
+        ],
+        "example": "Female",
+        "extraction_hints": "Usually in demographics section",
+        "required": true
+      },
+      {
+        "field_name": "chief_complaint",
+        "field_type": "text",
+        "field_control_type": "text",
+        "field_description": "Primary reason for medical visit or admission",
+        "example": "Shortness of breath and chest pain for 3 days",
+        "extraction_hints": "Often at the beginning of clinical notes under 'Chief Complaint' or 'Presenting Problem'",
+        "required": true
+      },
+      {
+        "field_name": "symptom_duration",
+        "field_type": "text",
+        "field_control_type": "text",
+        "field_description": "How long patient has experienced symptoms",
+        "example": "3 days",
+        "extraction_hints": "Usually mentioned with chief complaint",
+        "required": false
+      },
+      {
+        "field_name": "medical_history",
+        "field_type": "text",
+        "field_control_type": "text",
+        "field_description": "Significant past medical conditions and diagnoses",
+        "example": "Type 2 diabetes mellitus, hypertension, coronary artery disease s/p CABG 2018",
+        "extraction_hints": "Look in 'Past Medical History' or 'PMH' section",
+        "required": true
+      },
+      {
+        "field_name": "current_medications",
+        "field_type": "text",
+        "field_control_type": "text",
+        "field_description": "List of medications patient is currently taking",
+        "example": "Metformin 1000mg BID, Lisinopril 20mg daily, Aspirin 81mg daily, Atorvastatin 40mg daily",
+        "extraction_hints": "Look in 'Medications' or 'Current Medications' section",
+        "required": true
+      },
+      {
+        "field_name": "allergies",
+        "field_type": "text",
+        "field_control_type": "text",
+        "field_description": "Known drug or other allergies",
+        "example": "Penicillin (rash), Sulfa drugs (Stevens-Johnson syndrome)",
+        "extraction_hints": "Usually prominently noted in allergies section",
+        "required": false
+      },
+      {
+        "field_name": "smoking_status",
+        "field_type": "enum",
+        "field_control_type": "dropdown",
+        "field_description": "Patient's smoking history",
+        "options": [
+          "Never smoker",
+          "Former smoker",
+          "Current smoker",
+          "Unknown"
+        ],
+        "example": "Former smoker",
+        "extraction_hints": "Look in social history section",
+        "required": false
+      },
+      {
+        "field_name": "alcohol_use",
+        "field_type": "enum",
+        "field_control_type": "dropdown",
+        "field_description": "Patient's alcohol consumption pattern",
+        "options": [
+          "None",
+          "Occasional",
+          "Moderate",
+          "Heavy",
+          "Unknown"
+        ],
+        "example": "Occasional",
+        "extraction_hints": "Look in social history section",
+        "required": false
+      },
+      {
+        "field_name": "blood_pressure_systolic",
+        "field_type": "number",
+        "field_control_type": "number",
+        "field_description": "Systolic blood pressure reading in mmHg",
+        "example": 142,
+        "extraction_hints": "Look in vital signs section",
+        "required": true
+      },
+      {
+        "field_name": "blood_pressure_diastolic",
+        "field_type": "number",
+        "field_control_type": "number",
+        "field_description": "Diastolic blood pressure reading in mmHg",
+        "example": 88,
+        "extraction_hints": "Look in vital signs section",
+        "required": true
+      },
+      {
+        "field_name": "heart_rate",
+        "field_type": "number",
+        "field_control_type": "number",
+        "field_description": "Heart rate in beats per minute",
+        "example": 92,
+        "extraction_hints": "Look in vital signs section",
+        "required": true
+      },
+      {
+        "field_name": "body_temperature",
+        "field_type": "number",
+        "field_control_type": "number",
+        "field_description": "Body temperature in Celsius",
+        "example": 37.2,
+        "extraction_hints": "Look in vital signs section",
+        "required": false
+      },
+      {
+        "field_name": "bmi",
+        "field_type": "number",
+        "field_control_type": "number",
+        "field_description": "Body Mass Index",
+        "example": 28.4,
+        "extraction_hints": "May be calculated or stated in vital signs",
+        "required": false
+      },
+      {
+        "field_name": "primary_diagnosis",
+        "field_type": "text",
+        "field_control_type": "text",
+        "field_description": "Primary diagnosis or assessment",
+        "example": "Acute exacerbation of heart failure",
+        "extraction_hints": "Look in 'Assessment', 'Diagnosis', or 'Impression' section",
+        "required": true
+      },
+      {
+        "field_name": "secondary_diagnoses",
+        "field_type": "text",
+        "field_control_type": "text",
+        "field_description": "Additional diagnoses or comorbidities",
+        "example": "Hypertensive urgency, Chronic kidney disease stage 3",
+        "extraction_hints": "Listed after primary diagnosis",
+        "required": false
+      },
+      {
+        "field_name": "lab_hemoglobin",
+        "field_type": "number",
+        "field_control_type": "number",
+        "field_description": "Hemoglobin level in g/dL",
+        "example": 13.2,
+        "extraction_hints": "Look in laboratory results section",
+        "required": false
+      },
+      {
+        "field_name": "lab_creatinine",
+        "field_type": "number",
+        "field_control_type": "number",
+        "field_description": "Serum creatinine in mg/dL",
+        "example": 1.8,
+        "extraction_hints": "Look in laboratory results section",
+        "required": false
+      },
+      {
+        "field_name": "lab_glucose",
+        "field_type": "number",
+        "field_control_type": "number",
+        "field_description": "Blood glucose level in mg/dL",
+        "example": 156,
+        "extraction_hints": "Look in laboratory results section",
+        "required": false
+      },
+      {
+        "field_name": "treatment_plan",
+        "field_type": "text",
+        "field_control_type": "text",
+        "field_description": "Recommended treatment plan and interventions",
+        "example": "Admit for IV diuresis, telemetry monitoring, adjust heart failure medications, cardiology consult",
+        "extraction_hints": "Look in 'Plan', 'Treatment Plan', or 'Recommendations' section",
+        "required": true
+      },
+      {
+        "field_name": "risk_stratification",
+        "field_type": "text",
+        "field_control_type": "text",
+        "field_description": "Assessment of patient's cardiovascular or overall health risk based on age, vital signs, diagnoses, and labs",
+        "example": "High cardiovascular risk: 67yo with multiple cardiac risk factors (diabetes, hypertension, CAD history), elevated BP (142/88), elevated creatinine (1.8) suggesting renal impairment, presenting with heart failure exacerbation",
+        "extraction_hints": "Synthesize from patient_age, blood_pressure values, heart_rate, primary_diagnosis, medical_history, and relevant lab values",
+        "required": true
+      },
+      {
+        "field_name": "medication_review",
+        "field_type": "text",
+        "field_control_type": "text",
+        "field_description": "Assessment of current medication appropriateness given diagnoses and clinical status",
+        "example": "Current medications appropriate for diabetes and cardiac history. Consider increasing Lisinopril dose given elevated BP. Continue aspirin and statin for secondary prevention. May need diuretic adjustment for heart failure management",
+        "extraction_hints": "Synthesize from current_medications, primary_diagnosis, secondary_diagnoses, and vital signs",
+        "required": true
+      },
+      {
+        "field_name": "lifestyle_recommendations",
+        "field_type": "text",
+        "field_control_type": "text",
+        "field_description": "Lifestyle modification recommendations based on diagnoses and risk factors",
+        "example": "Continue smoking cessation (former smoker - positive). Recommend limiting alcohol to occasional use given heart failure. Weight management important given BMI 28.4. Sodium restriction <2g/day for heart failure. Regular exercise as tolerated",
+        "extraction_hints": "Synthesize from smoking_status, alcohol_use, bmi, and primary_diagnosis",
+        "required": true
+      },
+      {
+        "field_name": "clinical_summary",
+        "field_type": "text",
+        "field_control_type": "text",
+        "field_description": "Comprehensive clinical summary synthesizing all key findings, assessments, and recommendations",
+        "example": "67yo female with PMH of T2DM, HTN, and CAD s/p CABG presents with 3-day history of SOB and chest pain. Exam notable for elevated BP 142/88, HR 92. Labs show elevated creatinine 1.8 and glucose 156. Diagnosed with acute heart failure exacerbation and hypertensive urgency. Risk assessment indicates high cardiovascular risk. Current medications reviewed and adjustments recommended. Plan: admit for IV diuresis, telemetry, and cardiology consultation. Emphasized lifestyle modifications including sodium restriction and weight management",
+        "extraction_hints": "Synthesize comprehensive summary from chief_complaint, medical_history, vital signs, diagnoses, risk_stratification, medication_review, and treatment_plan",
+        "required": true
+      }
+    ]
+  },
+  "field_mapping": {},
+  "decomposition": {
+    "reasoning_trace": "Step 1: Field Inventory\n- Found 24 fields total in form_data\n- Text fields: chief_complaint, symptom_duration, medical_history, current_medications, allergies, primary_diagnosis, secondary_diagnoses, treatment_plan (8 direct extractions) + risk_stratification, medication_review, lifestyle_recommendations, clinical_summary (4 aggregations)\n- Numeric fields: female_patient_age_mean, blood_pressure_systolic, blood_pressure_diastolic, heart_rate, body_temperature, bmi, lab_hemoglobin, lab_creatinine, lab_glucose (9 direct extractions)\n- Enum fields: most_patient_gender, smoking_status, alcohol_use (3 classifications)\n\nStep 2: Cognitive Behavior Analysis\n- Direct text extractions (8): chief_complaint, symptom_duration, medical_history, current_medications, allergies, primary_diagnosis, secondary_diagnoses, treatment_plan\n- Direct numeric extractions (9): female_patient_age_mean, blood_pressure_systolic, blood_pressure_diastolic, heart_rate, body_temperature, bmi, lab_hemoglobin, lab_creatinine, lab_glucose\n- Enum classifications (3): most_patient_gender, smoking_status, alcohol_use\n- Aggregation/synthesis fields (4):\n  * risk_stratification: synthesizes from female_patient_age_mean, blood_pressure_systolic, blood_pressure_diastolic, heart_rate, primary_diagnosis, medical_history, lab_creatinine\n  * medication_review: synthesizes from current_medications, primary_diagnosis, secondary_diagnoses, blood_pressure_systolic, blood_pressure_diastolic\n  * lifestyle_recommendations: synthesizes from smoking_status, alcohol_use, bmi, primary_diagnosis\n  * clinical_summary: comprehensive synthesis from chief_complaint, medical_history, blood_pressure_systolic, blood_pressure_diastolic, heart_rate, lab_creatinine, lab_glucose, primary_diagnosis, secondary_diagnoses, risk_stratification, medication_review, treatment_plan\n\nStep 3: Grouping Decision\n- Created 7 signatures total\n- Grouped all 8 direct text extractions into ExtractTextualFields\n- Grouped all 9 direct numeric extractions into ExtractNumericFields\n- Grouped all 3 enum classifications into ClassifyEnumFields\n- Separated each aggregation field into its own signature due to dependencies: SynthesizeRiskStratification, SynthesizeMedicationReview, SynthesizeLifestyleRecommendations, AggregateClinicalSummary\n\nStep 4: Verification\n- All 24 fields covered exactly once\n- No duplicates\n- Dependencies validated: aggregation signatures depend on outputs from extraction/classification signatures\n- Clinical_summary has cascading dependency on other aggregation outputs",
+    "signatures": [
+      {
+        "name": "ExtractTextualFields",
+        "fields": {
+          "chief_complaint": {
+            "field_name": "chief_complaint",
+            "field_type": "text",
+            "field_control_type": "text",
+            "field_description": "Primary reason for medical visit or admission",
+            "example": "Shortness of breath and chest pain for 3 days",
+            "extraction_hints": "Often at the beginning of clinical notes under 'Chief Complaint' or 'Presenting Problem'"
+          },
+          "symptom_duration": {
+            "field_name": "symptom_duration",
+            "field_type": "text",
+            "field_control_type": "text",
+            "field_description": "How long patient has experienced symptoms",
+            "example": "3 days",
+            "extraction_hints": "Usually mentioned with chief complaint"
+          },
+          "medical_history": {
+            "field_name": "medical_history",
+            "field_type": "text",
+            "field_control_type": "text",
+            "field_description": "Significant past medical conditions and diagnoses",
+            "example": "Type 2 diabetes mellitus, hypertension, coronary artery disease s/p CABG 2018",
+            "extraction_hints": "Look in 'Past Medical History' or 'PMH' section"
+          },
+          "current_medications": {
+            "field_name": "current_medications",
+            "field_type": "text",
+            "field_control_type": "text",
+            "field_description": "List of medications patient is currently taking",
+            "example": "Metformin 1000mg BID, Lisinopril 20mg daily, Aspirin 81mg daily, Atorvastatin 40mg daily",
+            "extraction_hints": "Look in 'Medications' or 'Current Medications' section"
+          },
+          "allergies": {
+            "field_name": "allergies",
+            "field_type": "text",
+            "field_control_type": "text",
+            "field_description": "Known drug or other allergies",
+            "example": "Penicillin (rash), Sulfa drugs (Stevens-Johnson syndrome)",
+            "extraction_hints": "Usually prominently noted in allergies section"
+          },
+          "primary_diagnosis": {
+            "field_name": "primary_diagnosis",
+            "field_type": "text",
+            "field_control_type": "text",
+            "field_description": "Primary diagnosis or assessment",
+            "example": "Acute exacerbation of heart failure",
+            "extraction_hints": "Look in 'Assessment', 'Diagnosis', or 'Impression' section"
+          },
+          "secondary_diagnoses": {
+            "field_name": "secondary_diagnoses",
+            "field_type": "text",
+            "field_control_type": "text",
+            "field_description": "Additional diagnoses or comorbidities",
+            "example": "Hypertensive urgency, Chronic kidney disease stage 3",
+            "extraction_hints": "Listed after primary diagnosis"
+          },
+          "treatment_plan": {
+            "field_name": "treatment_plan",
+            "field_type": "text",
+            "field_control_type": "text",
+            "field_description": "Recommended treatment plan and interventions",
+            "example": "Admit for IV diuresis, telemetry monitoring, adjust heart failure medications, cardiology consult",
+            "extraction_hints": "Look in 'Plan', 'Treatment Plan', or 'Recommendations' section"
+          }
+        },
+        "depends_on": []
+      },
+      {
+        "name": "ExtractNumericFields",
+        "fields": {
+          "female_patient_age_mean": {
+            "field_name": "female_patient_age_mean",
+            "field_type": "number",
+            "field_control_type": "number",
+            "field_description": "Patient's age in years",
+            "example": 67,
+            "extraction_hints": "Look in patient demographics or header section"
+          },
+          "blood_pressure_systolic": {
+            "field_name": "blood_pressure_systolic",
+            "field_type": "number",
+            "field_control_type": "number",
+            "field_description": "Systolic blood pressure reading in mmHg",
+            "example": 142,
+            "extraction_hints": "Look in vital signs section"
+          },
+          "blood_pressure_diastolic": {
+            "field_name": "blood_pressure_diastolic",
+            "field_type": "number",
+            "field_control_type": "number",
+            "field_description": "Diastolic blood pressure reading in mmHg",
+            "example": 88,
+            "extraction_hints": "Look in vital signs section"
+          },
+          "heart_rate": {
+            "field_name": "heart_rate",
+            "field_type": "number",
+            "field_control_type": "number",
+            "field_description": "Heart rate in beats per minute",
+            "example": 92,
+            "extraction_hints": "Look in vital signs section"
+          },
+          "body_temperature": {
+            "field_name": "body_temperature",
+            "field_type": "number",
+            "field_control_type": "number",
+            "field_description": "Body temperature in Celsius",
+            "example": 37.2,
+            "extraction_hints": "Look in vital signs section"
+          },
+          "bmi": {
+            "field_name": "bmi",
+            "field_type": "number",
+            "field_control_type": "number",
+            "field_description": "Body Mass Index",
+            "example": 28.4,
+            "extraction_hints": "May be calculated or stated in vital signs"
+          },
+          "lab_hemoglobin": {
+            "field_name": "lab_hemoglobin",
+            "field_type": "number",
+            "field_control_type": "number",
+            "field_description": "Hemoglobin level in g/dL",
+            "example": 13.2,
+            "extraction_hints": "Look in laboratory results section"
+          },
+          "lab_creatinine": {
+            "field_name": "lab_creatinine",
+            "field_type": "number",
+            "field_control_type": "number",
+            "field_description": "Serum creatinine in mg/dL",
+            "example": 1.8,
+            "extraction_hints": "Look in laboratory results section"
+          },
+          "lab_glucose": {
+            "field_name": "lab_glucose",
+            "field_type": "number",
+            "field_control_type": "number",
+            "field_description": "Blood glucose level in mg/dL",
+            "example": 156,
+            "extraction_hints": "Look in laboratory results section"
+          }
+        },
+        "depends_on": []
+      },
+      {
+        "name": "ClassifyEnumFields",
+        "fields": {
+          "most_patient_gender": {
+            "field_name": "most_patient_gender",
+            "field_type": "enum",
+            "field_control_type": "dropdown",
+            "field_description": "Patient's gender",
+            "options": [
+              "Male",
+              "Female",
+              "Other",
+              "Not specified"
+            ],
+            "example": "Female",
+            "extraction_hints": "Usually in demographics section"
+          },
+          "smoking_status": {
+            "field_name": "smoking_status",
+            "field_type": "enum",
+            "field_control_type": "dropdown",
+            "field_description": "Patient's smoking history",
+            "options": [
+              "Never smoker",
+              "Former smoker",
+              "Current smoker",
+              "Unknown"
+            ],
+            "example": "Former smoker",
+            "extraction_hints": "Look in social history section"
+          },
+          "alcohol_use": {
+            "field_name": "alcohol_use",
+            "field_type": "enum",
+            "field_control_type": "dropdown",
+            "field_description": "Patient's alcohol consumption pattern",
+            "options": [
+              "None",
+              "Occasional",
+              "Moderate",
+              "Heavy",
+              "Unknown"
+            ],
+            "example": "Occasional",
+            "extraction_hints": "Look in social history section"
+          }
+        },
+        "depends_on": []
+      },
+      {
+        "name": "SynthesizeRiskStratification",
+        "fields": {
+          "risk_stratification": {
+            "field_name": "risk_stratification",
+            "field_type": "text",
+            "field_control_type": "text",
+            "field_description": "Assessment of patient's cardiovascular or overall health risk based on age, vital signs, diagnoses, and labs",
+            "example": "High cardiovascular risk: 67yo with multiple cardiac risk factors (diabetes, hypertension, CAD history), elevated BP (142/88), elevated creatinine (1.8) suggesting renal impairment, presenting with heart failure exacerbation",
+            "extraction_hints": "Synthesize from patient_age, blood_pressure values, heart_rate, primary_diagnosis, medical_history, and relevant lab values"
+          }
+        },
+        "depends_on": [
+          "female_patient_age_mean",
+          "blood_pressure_systolic",
+          "blood_pressure_diastolic",
+          "heart_rate",
+          "primary_diagnosis",
+          "medical_history",
+          "lab_creatinine"
+        ]
+      },
+      {
+        "name": "SynthesizeMedicationReview",
+        "fields": {
+          "medication_review": {
+            "field_name": "medication_review",
+            "field_type": "text",
+            "field_control_type": "text",
+            "field_description": "Assessment of current medication appropriateness given diagnoses and clinical status",
+            "example": "Current medications appropriate for diabetes and cardiac history. Consider increasing Lisinopril dose given elevated BP. Continue aspirin and statin for secondary prevention. May need diuretic adjustment for heart failure management",
+            "extraction_hints": "Synthesize from current_medications, primary_diagnosis, secondary_diagnoses, and vital signs"
+          }
+        },
+        "depends_on": [
+          "current_medications",
+          "primary_diagnosis",
+          "secondary_diagnoses",
+          "blood_pressure_systolic",
+          "blood_pressure_diastolic"
+        ]
+      },
+      {
+        "name": "SynthesizeLifestyleRecommendations",
+        "fields": {
+          "lifestyle_recommendations": {
+            "field_name": "lifestyle_recommendations",
+            "field_type": "text",
+            "field_control_type": "text",
+            "field_description": "Lifestyle modification recommendations based on diagnoses and risk factors",
+            "example": "Continue smoking cessation (former smoker - positive). Recommend limiting alcohol to occasional use given heart failure. Weight management important given BMI 28.4. Sodium restriction <2g/day for heart failure. Regular exercise as tolerated",
+            "extraction_hints": "Synthesize from smoking_status, alcohol_use, bmi, and primary_diagnosis"
+          }
+        },
+        "depends_on": [
+          "smoking_status",
+          "alcohol_use",
+          "bmi",
+          "primary_diagnosis"
+        ]
+      },
+      {
+        "name": "AggregateClinicalSummary",
+        "fields": {
+          "clinical_summary": {
+            "field_name": "clinical_summary",
+            "field_type": "text",
+            "field_control_type": "text",
+            "field_description": "Comprehensive clinical summary synthesizing all key findings, assessments, and recommendations",
+            "example": "67yo female with PMH of T2DM, HTN, and CAD s/p CABG presents with 3-day history of SOB and chest pain. Exam notable for elevated BP 142/88, HR 92. Labs show elevated creatinine 1.8 and glucose 156. Diagnosed with acute heart failure exacerbation and hypertensive urgency. Risk assessment indicates high cardiovascular risk. Current medications reviewed and adjustments recommended. Plan: admit for IV diuresis, telemetry, and cardiology consultation. Emphasized lifestyle modifications including sodium restriction and weight management",
+            "extraction_hints": "Synthesize comprehensive summary from chief_complaint, medical_history, vital signs, diagnoses, risk_stratification, medication_review, and treatment_plan"
+          }
+        },
+        "depends_on": [
+          "chief_complaint",
+          "medical_history",
+          "blood_pressure_systolic",
+          "blood_pressure_diastolic",
+          "heart_rate",
+          "lab_creatinine",
+          "lab_glucose",
+          "primary_diagnosis",
+          "secondary_diagnoses",
+          "risk_stratification",
+          "medication_review",
+          "treatment_plan"
+        ]
+      }
+    ],
+    "pipeline": [
+      {
+        "stage": 1,
+        "signatures": [
+          "ExtractTextualFields",
+          "ExtractNumericFields",
+          "ClassifyEnumFields"
+        ],
+        "execution": "parallel",
+        "provides_fields": [
+          "chief_complaint",
+          "symptom_duration",
+          "medical_history",
+          "current_medications",
+          "allergies",
+          "primary_diagnosis",
+          "secondary_diagnoses",
+          "treatment_plan",
+          "female_patient_age_mean",
+          "blood_pressure_systolic",
+          "blood_pressure_diastolic",
+          "heart_rate",
+          "body_temperature",
+          "bmi",
+          "lab_hemoglobin",
+          "lab_creatinine",
+          "lab_glucose",
+          "most_patient_gender",
+          "smoking_status",
+          "alcohol_use"
+        ],
+        "requires_fields": []
+      },
+      {
+        "stage": 2,
+        "signatures": [
+          "SynthesizeRiskStratification",
+          "SynthesizeMedicationReview",
+          "SynthesizeLifestyleRecommendations"
+        ],
+        "execution": "parallel",
+        "provides_fields": [
+          "risk_stratification",
+          "medication_review",
+          "lifestyle_recommendations"
+        ],
+        "requires_fields": [
+          "heart_rate",
+          "lab_creatinine",
+          "female_patient_age_mean",
+          "blood_pressure_diastolic",
+          "smoking_status",
+          "current_medications",
+          "secondary_diagnoses",
+          "blood_pressure_systolic",
+          "primary_diagnosis",
+          "medical_history",
+          "bmi",
+          "alcohol_use"
+        ],
+        "waits_for_stage": 1
+      },
+      {
+        "stage": 3,
+        "signatures": [
+          "AggregateClinicalSummary"
+        ],
+        "execution": "sequential",
+        "provides_fields": [
+          "clinical_summary"
+        ],
+        "requires_fields": [
+          "lab_glucose",
+          "chief_complaint",
+          "heart_rate",
+          "lab_creatinine",
+          "blood_pressure_diastolic",
+          "secondary_diagnoses",
+          "blood_pressure_systolic",
+          "medical_history",
+          "primary_diagnosis",
+          "medication_review",
+          "treatment_plan",
+          "risk_stratification"
+        ],
+        "waits_for_stage": 2
+      }
+    ],
+    "field_coverage": {
+      "chief_complaint": "ExtractTextualFields",
+      "symptom_duration": "ExtractTextualFields",
+      "medical_history": "ExtractTextualFields",
+      "current_medications": "ExtractTextualFields",
+      "allergies": "ExtractTextualFields",
+      "primary_diagnosis": "ExtractTextualFields",
+      "secondary_diagnoses": "ExtractTextualFields",
+      "treatment_plan": "ExtractTextualFields",
+      "female_patient_age_mean": "ExtractNumericFields",
+      "blood_pressure_systolic": "ExtractNumericFields",
+      "blood_pressure_diastolic": "ExtractNumericFields",
+      "heart_rate": "ExtractNumericFields",
+      "body_temperature": "ExtractNumericFields",
+      "bmi": "ExtractNumericFields",
+      "lab_hemoglobin": "ExtractNumericFields",
+      "lab_creatinine": "ExtractNumericFields",
+      "lab_glucose": "ExtractNumericFields",
+      "most_patient_gender": "ClassifyEnumFields",
+      "smoking_status": "ClassifyEnumFields",
+      "alcohol_use": "ClassifyEnumFields",
+      "risk_stratification": "SynthesizeRiskStratification",
+      "medication_review": "SynthesizeMedicationReview",
+      "lifestyle_recommendations": "SynthesizeLifestyleRecommendations",
+      "clinical_summary": "AggregateClinicalSummary"
+    }
+  },
+  "generation_stats": {
+    "total_form_fields": 24,
+    "signatures": 7,
+    "modules": 7,
+    "pipeline_stages": 3,
+    "total_attempts": 0,
+    "signatures_generated": 7,
+    "modules_generated": 7
+  }
+}

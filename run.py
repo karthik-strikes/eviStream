@@ -9,14 +9,14 @@ import json
 from pathlib import Path
 from collections import defaultdict
 
-from utils.lm_config import *
+from utils.lm_config import get_dspy_model
 from utils.cache_cleaner import clear_cache_directories
 from utils.logging import set_log_file, log_history, show_stats, log_execution_time
 from data.loader import *
 import time
 from core.extractor import run_async_extraction_and_evaluation
 from utils.helpers.visualization import create_performance_dashboards
-from schemas import get_schema, build_schema_runtime, list_schemas
+from schemas import get_schema, build_runtime, list_schemas
 from core.config import INCLUDE_FULL_PROMPTS_IN_HISTORY, PROJECT_ROOT
 
 # Add eviStream to path
@@ -92,7 +92,7 @@ async def run_single_extraction(source_file: str, target_file: str, schema_runti
     print("="*60)
 
     log_execution_time(start_time, time.time(), "single",
-                       source_file, target_file, schema_runtime.schema.name)
+                       source_file, target_file, schema_runtime.config.schema_name)
 
 
 async def run_batch_extraction(md_dir: str, target_file: str, schema_runtime, clear_cache: bool = False, max_examples: int = None, save_dashboards: bool = False):
@@ -148,8 +148,9 @@ async def run_batch_extraction(md_dir: str, target_file: str, schema_runtime, cl
         'extra': 0
     })
 
-    semantic_fields = schema_runtime.evaluator.semantic_fields
-    exact_fields = schema_runtime.evaluator.exact_fields
+    # Note: evaluator/file_handler removed - extraction only
+    semantic_fields = []
+    exact_fields = []
 
     # Concurrency control
     from config import BATCH_CONCURRENCY
@@ -273,7 +274,7 @@ async def run_batch_extraction(md_dir: str, target_file: str, schema_runtime, cl
     print("="*60)
 
     log_execution_time(start_time, time.time(), "batch",
-                       md_dir, target_file, schema_runtime.schema.name)
+                       md_dir, target_file, schema_runtime.config.schema_name)
 
 
 def main():
@@ -298,12 +299,11 @@ def main():
 
     args = parser.parse_args()
 
-    schema_definition = get_schema(args.schema)
+    schema_config = get_schema(args.schema)
     schema_runtime = None
 
     try:
-        schema_runtime = build_schema_runtime(
-            schema_definition, target_file=args.target)
+        schema_runtime = build_runtime(schema_config)
 
         if args.mode == "single":
             if not args.source or not args.target:
