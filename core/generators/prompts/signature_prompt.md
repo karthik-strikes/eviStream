@@ -53,8 +53,38 @@ Type mapping for the "value" key from field metadata field_type:
 - "enum" → str (with options listed)
 - "boolean" → bool
 - "list" → str (comma-separated or JSON string)
+- "array" (with subform_fields) → List[Dict[str, Any]] (special case - see below)
 
-Field type declaration: Dict[str, Any]
+**SPECIAL CASE: Subform Fields (Repeating Data)**
+
+If field metadata contains:
+- field_type: "array"
+- field_control_type: "subform_table"  
+- subform_fields: [list of nested field definitions]
+
+This is a SUBFORM that extracts MULTIPLE instances of structured data.
+
+Field type declaration: List[Dict[str, Any]]
+
+The field extracts an array of objects, where each object has keys matching the subform_fields.
+
+For subform fields:
+1. Use List[Dict[str, Any]] as the field_type (NOT Dict[str, Any])
+2. In the description, explain this extracts ALL instances found
+3. List the structure of each item (what keys it contains from subform_fields)
+4. Provide examples showing an array with multiple objects
+5. For "NR" case, still use Dict format: {"value": "NR", "source_text": "NR"}
+
+Example subform output:
+{
+  "value": [
+    {"intervention_name": "Drug A", "dosage": "10mg", "duration": "12 weeks"},
+    {"intervention_name": "Placebo", "dosage": "matching", "duration": "12 weeks"}
+  ],
+  "source_text": "Table 1: Interventions. Drug A group received 10mg daily for 12 weeks. Placebo group received matching tablets for 12 weeks."
+}
+
+Standard Field type declaration: Dict[str, Any]
 
 **Rule 3: Every output field must have:**
 - Clear description of what to extract
@@ -329,6 +359,76 @@ ENUM/SELECT FIELD EXAMPLE
 ```
 
 ═══════════════════════════════════════════════════════════════════════════════
+SUBFORM FIELD EXAMPLE (ARRAY TYPE)
+═══════════════════════════════════════════════════════════════════════════════
+
+**Input Specification (Enriched Signature with Subform):**
+```json
+{
+  "name": "ExtractInterventions",
+  "fields": {
+    "interventions": {
+      "field_name": "interventions",
+      "field_type": "array",
+      "field_control_type": "subform_table",
+      "field_description": "Extract ALL interventions tested in the study",
+      "extraction_hints": ["Look in methods section for intervention groups"],
+      "subform_fields": [
+        {
+          "field_name": "intervention_name",
+          "field_type": "text",
+          "field_description": "Name of the intervention"
+        },
+        {
+          "field_name": "dosage",
+          "field_type": "text",
+          "field_description": "Dosage information"
+        },
+        {
+          "field_name": "duration",
+          "field_type": "text",
+          "field_description": "Duration of treatment"
+        }
+      ]
+    }
+  },
+  "depends_on": []
+}
+```
+
+**Output Specification:**
+```json
+{
+  "class_name": "ExtractInterventions",
+  "class_docstring": "Extract all intervention groups tested in the clinical study.\n\nForm Questions:\n- Interventions: \"Extract ALL interventions tested, including name, dosage, and duration for each\"\n\nThis signature extracts repeating data - finding every intervention group mentioned in the study.",
+  
+  "input_fields": [
+    {
+      "field_name": "markdown_content",
+      "field_type": "str",
+      "description": "Full markdown content of the clinical research paper"
+    }
+  ],
+  
+  "output_fields": [
+    {
+      "field_name": "interventions",
+      "field_type": "List[Dict[str, Any]]",
+      "description": "Array of all interventions tested in the study.\n\nDescription: Extract ALL interventions tested in the study\n\nExtraction Hints:\n- Look in methods section for intervention groups\n\nStructure:\nEach intervention in the array contains:\n- intervention_name (str): Name of the intervention\n- dosage (str): Dosage information\n- duration (str): Duration of treatment\n\nRules:\n- Extract EVERY intervention group mentioned in the study\n- Each intervention should be a complete object with all fields\n- Create a separate array item for each intervention found\n- Include control groups and placebo if present\n- If multiple interventions exist, the array will have multiple items\n- Use \"NR\" if no interventions are found\n\nSource Grounding:\n- Return a dictionary with two keys: \"value\" and \"source_text\"\n- \"value\": An array of intervention objects, each with intervention_name, dosage, and duration keys\n- \"source_text\": Copy the exact section(s) from the document describing all interventions\n- Include enough context in source_text to verify all extractions (typically the entire interventions section)\n- If value is \"NR\", set source_text to \"NR\" as well\n\nExamples:\n{\"value\": [{\"intervention_name\": \"Drug A 10mg\", \"dosage\": \"10mg daily\", \"duration\": \"12 weeks\"}, {\"intervention_name\": \"Drug B 20mg\", \"dosage\": \"20mg twice daily\", \"duration\": \"12 weeks\"}, {\"intervention_name\": \"Placebo\", \"dosage\": \"matching tablets\", \"duration\": \"12 weeks\"}], \"source_text\": \"Interventions: Participants were randomized to three groups. Group 1 received Drug A 10mg daily for 12 weeks. Group 2 received Drug B 20mg twice daily for 12 weeks. Group 3 received matching placebo tablets for 12 weeks.\"}\n{\"value\": [{\"intervention_name\": \"Exercise program\", \"dosage\": \"3 sessions per week\", \"duration\": \"6 months\"}, {\"intervention_name\": \"Standard care\", \"dosage\": \"N/A\", \"duration\": \"6 months\"}], \"source_text\": \"Methods: The intervention group participated in a structured exercise program with 3 sessions per week for 6 months. The control group received standard care for 6 months with no exercise intervention.\"}\n{\"value\": \"NR\", \"source_text\": \"NR\"}"
+    }
+  ]
+}
+```
+
+**KEY POINTS FOR SUBFORMS:**
+- Use List[Dict[str, Any]] as field_type (not Dict[str, Any])
+- The "value" key contains an ARRAY of objects
+- Each object in the array has keys from subform_fields
+- Include structure description listing all subfield names and types
+- Examples show arrays with multiple items
+- Emphasize extracting ALL instances found
+
+═══════════════════════════════════════════════════════════════════════════════
 CRITICAL REQUIREMENTS ⚠️
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -355,12 +455,14 @@ CRITICAL REQUIREMENTS ⚠️
    - Add context input field for EACH entry in depends_on array (if not empty)
 
 6. ✅ Type mapping:
-   - ALL output fields use Dict[str, Any] as field_type
+   - MOST output fields use Dict[str, Any] as field_type
+   - EXCEPTION: Subform fields (array with subform_fields) use List[Dict[str, Any]]
    - Within the "value" key, map from field_type:
      * "text" → str
      * "number" → int or float
      * "enum" → str
      * "boolean" → bool
+     * "array" (with subform_fields) → List[Dict[str, Any]]
 
 7. ✅ Include "NR" (Not Reported) convention in ALL field descriptions
    - When value is not found: {"value": "NR", "source_text": "NR"}
@@ -382,8 +484,9 @@ COMMON MISTAKES TO AVOID
    Field names must EXACTLY match keys in fields dict
 
 ❌ Using wrong types
-   ALL fields must use Dict[str, Any] as field_type
-   The "value" key inside should match the semantic type (str for text, int for number, etc.)
+   MOST fields use Dict[str, Any] as field_type
+   EXCEPTION: Subform fields (array with subform_fields) must use List[Dict[str, Any]]
+   The "value" key inside should match the semantic type (str for text, int for number, List for arrays)
 
 ❌ Missing "NR" convention
    Every field must document "NR" for missing data

@@ -21,8 +21,6 @@ def register_schema(config: DynamicSchemaConfig) -> None:
     """
     is_new = config.schema_name not in _SCHEMA_REGISTRY
     _SCHEMA_REGISTRY[config.schema_name] = config
-    if is_new:
-        print(f"Registered schema: {config.schema_name}")
 
 
 def get_schema(schema_name: str) -> DynamicSchemaConfig:

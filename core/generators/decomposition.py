@@ -180,7 +180,7 @@ def _enrich_signatures_with_metadata(
             }
 
             # Optional attributes (copied only if present)
-            for attr in ["options", "example", "extraction_hints"]:
+            for attr in ["options", "example", "extraction_hints", "subform_fields"]:
                 if attr in original_field:
                     enriched_field[attr] = original_field[attr]
 

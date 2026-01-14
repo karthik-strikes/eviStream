@@ -64,6 +64,11 @@ def validate_imports(code: str) -> Tuple[bool, List[str]]:
     if "Dict[str, Any]" in code and "from typing import" not in code and "import typing" not in code:
         errors.append(
             "Missing required import: 'from typing import Dict, Any' (needed for Dict[str, Any] type hints)")
+    
+    # If List[Dict[str, Any]] is used, check for List import
+    if "List[Dict[str, Any]]" in code and "from typing import" not in code and "import typing" not in code:
+        errors.append(
+            "Missing required import: 'from typing import List, Dict, Any' (needed for List[Dict[str, Any]] type hints)")
 
     return len(errors) == 0, errors
 
@@ -122,11 +127,12 @@ def validate_field_definitions(code: str) -> Tuple[bool, List[str]]:
     if "dspy.OutputField" not in code:
         errors.append("Must have at least one dspy.OutputField")
 
-    # Check for type hints (including Dict[str, Any] for source grounding)
+    # Check for type hints (including Dict[str, Any] for source grounding and List[Dict[str, Any]] for subforms)
     has_type_hints = (
         ": str = dspy.InputField" in code or
         ": str = dspy.OutputField" in code or
         ": Dict[str, Any] = dspy.OutputField" in code or
+        ": List[Dict[str, Any]] = dspy.OutputField" in code or
         ": int = dspy." in code or
         ": float = dspy." in code or
         ": bool = dspy." in code

@@ -37,7 +37,7 @@ class ModuleGenerator:
 
         Args:
             signature_class_name: Name of the signature class to wrap
-            fallback_structure: Dict of field_name -> default_value
+            fallback_structure: Dict of field_name -> default_value ([] for arrays, dict for regular)
 
         Returns:
             Complete Python code for the async module
@@ -50,11 +50,18 @@ class ModuleGenerator:
         # Format fallback structure for code
         fallback_json = json.dumps(fallback_structure, indent=12)
 
-        # Build field extraction code with source grounding support
-        # Each field is a Dict[str, Any] with "value" and "source_text" keys
+        # Build field extraction code with support for both regular and array fields
+        # Regular fields: Dict[str, Any] with "value" and "source_text" keys
+        # Array fields: List[Dict[str, Any]] - extracted directly
         field_extraction = "{\n"
         for field in field_names:
-            field_extraction += f'            "{field}": getattr(result, "{field}", {{"value": "NR", "source_text": "NR"}}),\n'
+            # Check if this is an array field by looking at fallback value
+            if fallback_structure[field] == []:
+                # Array field (subform) - extract directly as List[Dict[str, Any]]
+                field_extraction += f'            "{field}": getattr(result, "{field}", []),\n'
+            else:
+                # Regular field - extract with source grounding
+                field_extraction += f'            "{field}": getattr(result, "{field}", {{"value": "NR", "source_text": "NR"}}),\n'
         field_extraction += "        }"
 
         # Generate module code using template
@@ -149,24 +156,32 @@ class {module_class_name}(dspy.Module):
                 "errors": [f"Template generation failed: {str(e)}"],
             }
 
-    def create_fallback_structure(self, spec: Dict[str, Any]) -> Dict[str, Any]:
+    def create_fallback_structure(self, enriched_sig: Dict[str, Any]) -> Dict[str, Any]:
         """
         Create fallback structure for error recovery in modules.
-        With source grounding, all fields return {"value": "NR", "source_text": "NR"}.
+        
+        - Regular fields: {"value": "NR", "source_text": "NR"}
+        - Array fields (subforms): []
 
         Args:
-            spec: Questionnaire spec with output_structure
+            enriched_sig: Enriched signature with field metadata
 
         Returns:
             Fallback structure with default values
         """
-        output_structure = spec.get("output_structure", {})
+        fields_metadata = enriched_sig.get("fields", {})
 
-        if isinstance(output_structure, dict):
-            # Create fallback with source grounding format
+        if isinstance(fields_metadata, dict):
             fallback = {}
-            for field_name in output_structure.keys():
-                fallback[field_name] = {"value": "NR", "source_text": "NR"}
+            for field_name, field_meta in fields_metadata.items():
+                # Check if this is an array field (subform)
+                field_type = field_meta.get("field_type", "text")
+                if field_type == "array":
+                    # Subform fields return empty array
+                    fallback[field_name] = []
+                else:
+                    # Regular fields return source-grounded NR
+                    fallback[field_name] = {"value": "NR", "source_text": "NR"}
             return fallback
         else:
             return {"value": "NR", "source_text": "NR"}
@@ -191,7 +206,7 @@ class {module_class_name}(dspy.Module):
         lines = [
             "import asyncio",
             "import json",
-            "from typing import Dict, Any",
+            "from typing import Dict, Any, List",
             "",
             "import dspy",
             "",

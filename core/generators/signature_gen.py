@@ -93,17 +93,26 @@ class SignatureGenerator:
 
             return text
 
-        # Check if we need typing imports for Dict[str, Any]
-        needs_typing_import = any(
+        # Check if we need typing imports for Dict[str, Any] or List[Dict[str, Any]]
+        needs_dict_import = any(
             "Dict[str, Any]" in field.field_type
+            for field in spec.input_fields + spec.output_fields
+        )
+        needs_list_import = any(
+            "List[Dict[str, Any]]" in field.field_type
             for field in spec.input_fields + spec.output_fields
         )
 
         # Start with imports and class definition
         code_lines = ["import dspy"]
 
-        if needs_typing_import:
-            code_lines.append("from typing import Dict, Any")
+        if needs_dict_import or needs_list_import:
+            imports = []
+            if needs_list_import:
+                imports.append("List")
+            if needs_dict_import or needs_list_import:
+                imports.extend(["Dict", "Any"])
+            code_lines.append(f"from typing import {', '.join(imports)}")
 
         code_lines.extend([
             "",
@@ -236,16 +245,24 @@ class SignatureGenerator:
         Returns:
             Complete signatures.py file content
         """
-        # Check if any signature uses Dict[str, Any]
-        needs_typing_import = any(
+        # Check if any signature uses Dict[str, Any] or List[Dict[str, Any]]
+        needs_dict_import = any(
             "Dict[str, Any]" in sig["code"] for sig in signatures
+        )
+        needs_list_import = any(
+            "List[Dict[str, Any]]" in sig["code"] for sig in signatures
         )
 
         # Add unified imports at top
         lines = ["import dspy"]
 
-        if needs_typing_import:
-            lines.append("from typing import Dict, Any")
+        if needs_dict_import or needs_list_import:
+            imports = []
+            if needs_list_import:
+                imports.append("List")
+            if needs_dict_import or needs_list_import:
+                imports.extend(["Dict", "Any"])
+            lines.append(f"from typing import {', '.join(imports)}")
 
         lines.extend([
             "",

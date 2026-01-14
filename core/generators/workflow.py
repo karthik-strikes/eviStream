@@ -294,10 +294,8 @@ class WorkflowOrchestrator:
                 enriched_sig = next(
                     (s for s in all_sigs if s.get("name") == sig_name), {})
 
-                # Build fallback from fields
-                fallback = {}
-                for field_name in enriched_sig.get("fields", {}).keys():
-                    fallback[field_name] = "NR"
+                # Build fallback structure (handles both regular and array fields)
+                fallback = self.mod_gen.create_fallback_structure(enriched_sig)
 
                 result = self.mod_gen.generate_module(
                     sig_code["class_name"],

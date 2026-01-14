@@ -129,6 +129,136 @@ A field has dependencies if you **literally cannot extract it** without knowing 
 - If NO → no dependency
 
 ═══════════════════════════════════════════════════════════════════════════════
+HANDLING SUBFORMS (REPEATING DATA FIELDS)
+═══════════════════════════════════════════════════════════════════════════════
+
+Some fields extract MULTIPLE instances of structured data (repeating/hierarchical data).
+
+**How to recognize subform fields:**
+- field_type: "array"
+- field_control_type: "subform_table"
+- Has subform_fields: [array of nested field definitions]
+
+**Example subform field:**
+```json
+{
+  "field_name": "interventions",
+  "field_type": "array",
+  "field_control_type": "subform_table",
+  "field_description": "Extract ALL interventions tested in the study",
+  "subform_fields": [
+    {"field_name": "intervention_name", "field_type": "text"},
+    {"field_name": "dosage", "field_type": "text"},
+    {"field_name": "duration", "field_type": "text"}
+  ]
+}
+```
+
+This field extracts EVERY intervention mentioned, creating an array:
+```json
+"interventions": [
+  {"intervention_name": "Drug A", "dosage": "10mg", "duration": "12 weeks"},
+  {"intervention_name": "Drug B", "dosage": "20mg", "duration": "12 weeks"}
+]
+```
+
+**CRITICAL RULES FOR SUBFORMS:**
+
+✓ **Rule 1: List ONLY the parent field name in field_names**
+  - Include: "interventions"
+  - Don't include: "intervention_name", "dosage", "duration" (these are nested)
+  - The nested fields are columns in the repeating table, not separate fields
+
+✓ **Rule 2: Treat subform as single extraction task**
+  - Extracting "ALL interventions" is ONE cognitive workflow stage
+  - Usually gets its own signature (separate from simple fields)
+  - Signature name should indicate "all" or "multiple" (e.g., "ExtractAllInterventions")
+
+✓ **Rule 3: Count fields correctly**
+  - If form has "interventions" subform with 3 nested fields:
+  - Field count: 1 (the parent "interventions")
+  - NOT 4 (don't count nested fields separately)
+
+✓ **Rule 4: Dependencies work the same way**
+  - Ask: "Do I need field X to find ALL instances of the subform?"
+  - If YES → add dependency
+  - If NO → independent
+
+**Example decomposition with subform:**
+
+Form has 6 fields: study_title, total_participants, interventions (subform), outcomes (subform), funding, conclusion
+
+Correct decomposition:
+```json
+{
+  "signatures": [
+    {
+      "name": "ExtractStudyMetadata",
+      "field_names": ["study_title", "total_participants"],
+      "depends_on": []
+    },
+    {
+      "name": "ExtractAllInterventions",
+      "field_names": ["interventions"],
+      "depends_on": []
+    },
+    {
+      "name": "ExtractAllOutcomes",
+      "field_names": ["outcomes"],
+      "depends_on": []
+    },
+    {
+      "name": "ExtractConclusions",
+      "field_names": ["funding", "conclusion"],
+      "depends_on": []
+    }
+  ]
+}
+```
+
+**Common mistakes with subforms:**
+
+❌ WRONG: Including nested fields
+```json
+{
+  "name": "ExtractInterventions",
+  "field_names": ["interventions", "intervention_name", "dosage", "duration"]
+}
+```
+
+✓ CORRECT: Only parent field
+```json
+{
+  "name": "ExtractAllInterventions",
+  "field_names": ["interventions"]
+}
+```
+
+❌ WRONG: Creating separate signatures for each nested field
+```json
+[
+  {"name": "ExtractInterventionNames", "field_names": ["intervention_name"]},
+  {"name": "ExtractDosages", "field_names": ["dosage"]}
+]
+```
+
+✓ CORRECT: One signature for the whole subform
+```json
+{
+  "name": "ExtractAllInterventions",
+  "field_names": ["interventions"]
+}
+```
+
+**Naming conventions for subforms:**
+Use names that indicate finding ALL instances:
+- ✓ ExtractAllInterventions
+- ✓ CollectOutcomeMeasurements
+- ✓ EnumerateTimepoints
+- ✗ ExtractIntervention (singular - unclear)
+- ✗ GetInterventions (vague)
+
+═══════════════════════════════════════════════════════════════════════════════
 OUTPUT FORMAT (Pydantic Enforced)
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -438,6 +568,18 @@ COMMON MISTAKES TO AVOID
 ❌ Separating specification fields from what they specify
    Wrong: other_outcome_specification in separate signature from outcome_code
    Right: Group them together in DefineOutcomeMeasurement
+
+❌ Including nested subform fields in field_names
+   Wrong: field_names: ["interventions", "intervention_name", "dosage"]
+   Right: field_names: ["interventions"] (only parent field)
+
+❌ Creating separate signatures for subform columns
+   Wrong: Multiple signatures for intervention_name, dosage, duration
+   Right: One signature "ExtractAllInterventions" with field_names: ["interventions"]
+
+❌ Using singular names for subforms
+   Wrong: "ExtractIntervention" (singular, unclear if it's one or many)
+   Right: "ExtractAllInterventions" (clearly indicates multiple instances)
 
 ═══════════════════════════════════════════════════════════════════════════════
 NOW ANALYZE THE FORM AND CREATE SIGNATURES
