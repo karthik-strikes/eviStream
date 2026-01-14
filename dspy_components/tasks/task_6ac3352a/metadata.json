@@ -1,0 +1,128 @@
+{
+  "project_id": "f95060f0-9d06-422a-ab1a-9c956b16b91e",
+  "form_id": "fc44675e-0c8e-46b0-9efa-2f974fda54c8",
+  "form_data": {
+    "form_name": "InterventionsAndOutcomes",
+    "form_description": "Extract interventions and their associated outcomes from clinical trial papers",
+    "fields": [
+      {
+        "field_name": "study_title",
+        "field_type": "text",
+        "field_control_type": "text",
+        "field_description": "Title of the clinical study",
+        "example": "Randomized controlled trial of oral rinse for plaque reduction",
+        "extraction_hints": "Look in the title, abstract, or introduction section",
+        "required": true
+      },
+      {
+        "field_name": "interventions",
+        "field_type": "text",
+        "field_control_type": "text",
+        "field_description": "List of interventions tested in the study. Each intervention should include name, type, and dosage if available",
+        "example": "Drug A: 10mg twice daily, Placebo: matching tablets",
+        "extraction_hints": "Look in methods section, intervention description. Extract all interventions mentioned",
+        "required": true
+      },
+      {
+        "field_name": "outcomes",
+        "field_type": "text",
+        "field_control_type": "text",
+        "field_description": "List of outcomes measured in the study. Include primary and secondary outcomes with their results if available",
+        "example": "Primary: Plaque index reduction (mean 0.45, SD 0.12). Secondary: Gingival bleeding (reduced by 30%)",
+        "extraction_hints": "Look in results section, outcomes table, or methods section where outcomes are pre-specified",
+        "required": true
+      },
+      {
+        "field_name": "total_participants",
+        "field_type": "number",
+        "field_control_type": "number",
+        "field_description": "Total number of participants enrolled",
+        "example": 150,
+        "extraction_hints": "Look in methods section, participant flow, or results section",
+        "required": false
+      }
+    ]
+  },
+  "field_mapping": {},
+  "decomposition": {
+    "reasoning_trace": "Step 1: Field Inventory\n- Found 4 fields in form_data\n- 3 text fields: study_title, interventions, outcomes\n- 1 numeric field: total_participants\n- 0 enum fields, 0 boolean fields, 0 aggregation fields\n\nStep 2: Cognitive Behavior Analysis\n- Text extractions: study_title (extract title from document), interventions (extract intervention details from methods), outcomes (extract outcome results from results section)\n- Numeric extractions: total_participants (extract participant count from methods/results)\n- All fields are independent direct extractions from the document\n- No aggregation or synthesis fields present\n\nStep 3: Grouping Decision\n- Created 2 signatures by grouping fields with same cognitive behavior\n- ExtractTextualFields: Groups all 3 text extraction fields (study_title, interventions, outcomes)\n- ExtractNumericFields: Contains the 1 numeric extraction field (total_participants)\n- No dependencies needed as all fields extract directly from document\n\nStep 4: Verification\n- All 4 fields covered\n- No duplicates\n- No dependencies (all independent extractions)\n- Minimized to 2 signatures following aggressive grouping strategy",
+    "signatures": [
+      {
+        "name": "ExtractTextualFields",
+        "fields": {
+          "study_title": {
+            "field_name": "study_title",
+            "field_type": "text",
+            "field_control_type": "text",
+            "field_description": "Title of the clinical study",
+            "example": "Randomized controlled trial of oral rinse for plaque reduction",
+            "extraction_hints": "Look in the title, abstract, or introduction section"
+          },
+          "interventions": {
+            "field_name": "interventions",
+            "field_type": "text",
+            "field_control_type": "text",
+            "field_description": "List of interventions tested in the study. Each intervention should include name, type, and dosage if available",
+            "example": "Drug A: 10mg twice daily, Placebo: matching tablets",
+            "extraction_hints": "Look in methods section, intervention description. Extract all interventions mentioned"
+          },
+          "outcomes": {
+            "field_name": "outcomes",
+            "field_type": "text",
+            "field_control_type": "text",
+            "field_description": "List of outcomes measured in the study. Include primary and secondary outcomes with their results if available",
+            "example": "Primary: Plaque index reduction (mean 0.45, SD 0.12). Secondary: Gingival bleeding (reduced by 30%)",
+            "extraction_hints": "Look in results section, outcomes table, or methods section where outcomes are pre-specified"
+          }
+        },
+        "depends_on": []
+      },
+      {
+        "name": "ExtractNumericFields",
+        "fields": {
+          "total_participants": {
+            "field_name": "total_participants",
+            "field_type": "number",
+            "field_control_type": "number",
+            "field_description": "Total number of participants enrolled",
+            "example": 150,
+            "extraction_hints": "Look in methods section, participant flow, or results section"
+          }
+        },
+        "depends_on": []
+      }
+    ],
+    "pipeline": [
+      {
+        "stage": 1,
+        "signatures": [
+          "ExtractTextualFields",
+          "ExtractNumericFields"
+        ],
+        "execution": "parallel",
+        "provides_fields": [
+          "study_title",
+          "interventions",
+          "outcomes",
+          "total_participants"
+        ],
+        "requires_fields": []
+      }
+    ],
+    "field_coverage": {
+      "study_title": "ExtractTextualFields",
+      "interventions": "ExtractTextualFields",
+      "outcomes": "ExtractTextualFields",
+      "total_participants": "ExtractNumericFields"
+    }
+  },
+  "generation_stats": {
+    "total_form_fields": 4,
+    "signatures": 2,
+    "modules": 2,
+    "pipeline_stages": 1,
+    "total_attempts": 0,
+    "signatures_generated": 2,
+    "modules_generated": 2
+  }
+}

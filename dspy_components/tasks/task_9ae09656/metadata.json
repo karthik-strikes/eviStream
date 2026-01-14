@@ -1,0 +1,102 @@
+{
+  "project_id": "c78b95ef-831b-4e84-bc73-067bc3919518",
+  "form_id": "d2c95270-a7f8-4a5c-b736-1eac5238550e",
+  "form_data": {
+    "form_name": "Pa5",
+    "form_description": "Extract comprehensive patient medical history, current conditions, medications, and clinical assessments from medical records",
+    "fields": [
+      {
+        "field_name": "patient_age",
+        "field_type": "number",
+        "field_control_type": "number",
+        "field_description": "Patient's age in years",
+        "example": 67,
+        "extraction_hints": "Look in patient demographics or header section",
+        "required": true
+      },
+      {
+        "field_name": "patient_gender",
+        "field_type": "enum",
+        "field_control_type": "dropdown",
+        "field_description": "Patient's gender",
+        "options": [
+          "Male",
+          "Female",
+          "Other",
+          "Not specified"
+        ],
+        "example": "Female",
+        "extraction_hints": "Usually in demographics section",
+        "required": true
+      }
+    ]
+  },
+  "field_mapping": {},
+  "decomposition": {
+    "reasoning_trace": "Step 1: Field Inventory\n- Found 2 fields in form_data\n- 0 text fields, 1 numeric field (patient_age), 1 enum field (patient_gender), 0 boolean fields, 0 aggregation fields\n\nStep 2: Cognitive Behavior Analysis\n- Numeric extractions: [patient_age] - Direct extraction of age value from demographics\n- Enum classifications: [patient_gender] - Classification into predefined gender categories\n- No aggregation or synthesis fields present\n\nStep 3: Grouping Decision\n- Created 2 signatures by grouping fields with same cognitive behavior\n- ExtractNumericFields for patient_age (direct numeric extraction)\n- ClassifyEnumFields for patient_gender (classification into options)\n- Both are independent extractions from document, no dependencies\n\nStep 4: Verification\n- All 2 fields covered\n- No duplicates\n- No dependencies (all fields are independent extractions)",
+    "signatures": [
+      {
+        "name": "ExtractNumericFields",
+        "fields": {
+          "patient_age": {
+            "field_name": "patient_age",
+            "field_type": "number",
+            "field_control_type": "number",
+            "field_description": "Patient's age in years",
+            "example": 67,
+            "extraction_hints": "Look in patient demographics or header section"
+          }
+        },
+        "depends_on": []
+      },
+      {
+        "name": "ClassifyEnumFields",
+        "fields": {
+          "patient_gender": {
+            "field_name": "patient_gender",
+            "field_type": "enum",
+            "field_control_type": "dropdown",
+            "field_description": "Patient's gender",
+            "options": [
+              "Male",
+              "Female",
+              "Other",
+              "Not specified"
+            ],
+            "example": "Female",
+            "extraction_hints": "Usually in demographics section"
+          }
+        },
+        "depends_on": []
+      }
+    ],
+    "pipeline": [
+      {
+        "stage": 1,
+        "signatures": [
+          "ExtractNumericFields",
+          "ClassifyEnumFields"
+        ],
+        "execution": "parallel",
+        "provides_fields": [
+          "patient_age",
+          "patient_gender"
+        ],
+        "requires_fields": []
+      }
+    ],
+    "field_coverage": {
+      "patient_age": "ExtractNumericFields",
+      "patient_gender": "ClassifyEnumFields"
+    }
+  },
+  "generation_stats": {
+    "total_form_fields": 2,
+    "signatures": 2,
+    "modules": 0,
+    "pipeline_stages": 1,
+    "total_attempts": 0,
+    "signatures_generated": 2,
+    "modules_generated": 0
+  }
+}

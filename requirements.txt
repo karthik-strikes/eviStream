@@ -1,4 +1,5 @@
 dspy
+streamlit
 pandas
 numpy
 matplotlib
@@ -10,5 +11,6 @@ python-dotenv
 scipy
 aiofiles
 diskcache
+supabase
 
 

@@ -1,0 +1,162 @@
+{
+  "form_name": "ClinicalTrialAnalysis",
+  "form_description": "Extract comprehensive clinical trial data with multi-stage dependencies: demographics → study design → interventions → outcomes → statistics",
+  "fields": [
+    {
+      "field_name": "study_type",
+      "field_type": "enum",
+      "field_control_type": "dropdown",
+      "field_description": "Type of clinical study design",
+      "options": [
+        "Randomized Controlled Trial",
+        "Cohort Study",
+        "Case-Control Study",
+        "Cross-Sectional Study",
+        "Systematic Review",
+        "Meta-Analysis",
+        "Other"
+      ],
+      "example": "Randomized Controlled Trial",
+      "extraction_hints": "Look in methods section, abstract, or study design description",
+      "required": true
+    },
+    {
+      "field_name": "total_participants",
+      "field_type": "number",
+      "field_control_type": "number",
+      "field_description": "Total number of participants enrolled in the study",
+      "example": 150,
+      "extraction_hints": "Look in methods section, participant flow, or results section",
+      "required": true
+    },
+    {
+      "field_name": "intervention_name",
+      "field_type": "text",
+      "field_control_type": "text",
+      "field_description": "Name of the primary intervention being tested",
+      "example": "Placebo-controlled oral rinse",
+      "extraction_hints": "Look in methods section, intervention description. Extract only if study_type indicates an interventional study",
+      "required": false,
+      "depends_on": ["study_type"]
+    },
+    {
+      "field_name": "intervention_dosage",
+      "field_type": "text",
+      "field_control_type": "text",
+      "field_description": "Dosage or frequency of the intervention",
+      "example": "Twice daily for 4 weeks",
+      "extraction_hints": "Look in methods section. Only extract if intervention_name was identified",
+      "required": false,
+      "depends_on": ["intervention_name"]
+    },
+    {
+      "field_name": "control_group_type",
+      "field_type": "enum",
+      "field_control_type": "dropdown",
+      "field_description": "Type of control group used in the study",
+      "options": [
+        "Placebo",
+        "Active Control",
+        "No Treatment",
+        "Standard Care",
+        "Historical Control",
+        "Not Applicable"
+      ],
+      "example": "Placebo",
+      "extraction_hints": "Look in methods section. Only extract if study_type is interventional and intervention_name exists",
+      "required": false,
+      "depends_on": ["study_type", "intervention_name"]
+    },
+    {
+      "field_name": "primary_outcome",
+      "field_type": "text",
+      "field_control_type": "text",
+      "field_description": "Primary outcome measure of the study",
+      "example": "Reduction in plaque index at 4 weeks",
+      "extraction_hints": "Look in methods or results section. Extract outcome that was pre-specified as primary",
+      "required": true,
+      "depends_on": ["study_type"]
+    },
+    {
+      "field_name": "primary_outcome_result",
+      "field_type": "text",
+      "field_control_type": "text",
+      "field_description": "Result of the primary outcome measurement",
+      "example": "Mean reduction of 0.45 (SD 0.12) in intervention group vs 0.23 (SD 0.15) in control",
+      "extraction_hints": "Look in results section. Extract only if primary_outcome was identified",
+      "required": false,
+      "depends_on": ["primary_outcome"]
+    },
+    {
+      "field_name": "statistical_significance",
+      "field_type": "enum",
+      "field_control_type": "dropdown",
+      "field_description": "Whether the primary outcome showed statistical significance",
+      "options": [
+        "Statistically Significant",
+        "Not Statistically Significant",
+        "Not Reported",
+        "Not Applicable"
+      ],
+      "example": "Statistically Significant",
+      "extraction_hints": "Look in results section for p-values or confidence intervals. Extract only if primary_outcome_result exists",
+      "required": false,
+      "depends_on": ["primary_outcome_result"]
+    },
+    {
+      "field_name": "p_value",
+      "field_type": "number",
+      "field_control_type": "number",
+      "field_description": "P-value for the primary outcome",
+      "example": 0.03,
+      "extraction_hints": "Look in results section. Extract only if statistical_significance indicates significance was tested",
+      "required": false,
+      "depends_on": ["statistical_significance", "primary_outcome_result"]
+    },
+    {
+      "field_name": "effect_size",
+      "field_type": "text",
+      "field_control_type": "text",
+      "field_description": "Effect size measure (e.g., Cohen's d, odds ratio, relative risk)",
+      "example": "Cohen's d = 0.65",
+      "extraction_hints": "Look in results section. Extract only if primary_outcome_result and statistical analysis were reported",
+      "required": false,
+      "depends_on": ["primary_outcome_result", "statistical_significance"]
+    },
+    {
+      "field_name": "adverse_events_reported",
+      "field_type": "boolean",
+      "field_control_type": "checkbox",
+      "field_description": "Whether adverse events were reported in the study",
+      "example": true,
+      "extraction_hints": "Look in results or safety section. Extract only if intervention_name exists (interventional studies)",
+      "required": false,
+      "depends_on": ["intervention_name"]
+    },
+    {
+      "field_name": "adverse_events_count",
+      "field_type": "number",
+      "field_control_type": "number",
+      "field_description": "Number of adverse events reported",
+      "example": 5,
+      "extraction_hints": "Look in safety or adverse events section. Extract only if adverse_events_reported is true",
+      "required": false,
+      "depends_on": ["adverse_events_reported"]
+    },
+    {
+      "field_name": "follow_up_duration",
+      "field_type": "text",
+      "field_control_type": "text",
+      "field_description": "Duration of follow-up period",
+      "example": "6 months",
+      "extraction_hints": "Look in methods section. Extract only if study_type indicates a longitudinal study",
+      "required": false,
+      "depends_on": ["study_type"]
+    }
+  ]
+}
+
+
+
+
+

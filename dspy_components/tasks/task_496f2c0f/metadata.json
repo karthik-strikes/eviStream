@@ -1,0 +1,108 @@
+{
+  "project_id": "c78b95ef-831b-4e84-bc73-067bc3919518",
+  "form_id": "4aa83a2c-bcbc-424d-aeb1-a4ff3b2a6190",
+  "form_data": {
+    "form_name": "Lets_test",
+    "form_description": "Lets_test",
+    "fields": [
+      {
+        "field_name": "Mean_age_study1",
+        "field_type": "number",
+        "field_control_type": "number",
+        "field_description": "Mean_age_study1"
+      },
+      {
+        "field_name": "Mean_age_study2",
+        "field_type": "number",
+        "field_control_type": "number",
+        "field_description": "Mean_age_study2"
+      },
+      {
+        "field_name": "most_discussed_gender",
+        "field_type": "text",
+        "field_control_type": "text",
+        "field_description": "most_discussed_gender in paper"
+      },
+      {
+        "field_name": "author",
+        "field_type": "text",
+        "field_control_type": "text",
+        "field_description": "authors of the paper"
+      }
+    ]
+  },
+  "field_mapping": {},
+  "decomposition": {
+    "reasoning_trace": "Step 1: Field Inventory\n- Found 4 fields in form_data\n- 2 text fields (most_discussed_gender, author)\n- 2 numeric fields (Mean_age_study1, Mean_age_study2)\n- 0 enum fields, 0 boolean fields, 0 aggregation fields\n\nStep 2: Cognitive Behavior Analysis\n- Text extractions: most_discussed_gender (extracts gender information from paper), author (extracts author names from paper)\n- Numeric extractions: Mean_age_study1 (extracts mean age value from study 1), Mean_age_study2 (extracts mean age value from study 2)\n- All fields are independent direct extractions from the document\n\nStep 3: Grouping Decision\n- Created 2 signatures by grouping fields with same cognitive behavior\n- ExtractTextualFields: Groups both text extraction fields together\n- ExtractNumericFields: Groups both numeric extraction fields together\n- No aggregation fields present, so no dependencies needed\n\nStep 4: Verification\n- All 4 fields covered exactly once\n- No duplicates across signatures\n- No dependencies (all fields are independent extractions)\n- Minimized to 2 signatures following aggressive grouping strategy",
+    "signatures": [
+      {
+        "name": "ExtractTextualFields",
+        "fields": {
+          "most_discussed_gender": {
+            "field_name": "most_discussed_gender",
+            "field_type": "text",
+            "field_control_type": "text",
+            "field_description": "most_discussed_gender in paper"
+          },
+          "author": {
+            "field_name": "author",
+            "field_type": "text",
+            "field_control_type": "text",
+            "field_description": "authors of the paper"
+          }
+        },
+        "depends_on": []
+      },
+      {
+        "name": "ExtractNumericFields",
+        "fields": {
+          "Mean_age_study1": {
+            "field_name": "Mean_age_study1",
+            "field_type": "number",
+            "field_control_type": "number",
+            "field_description": "Mean_age_study1"
+          },
+          "Mean_age_study2": {
+            "field_name": "Mean_age_study2",
+            "field_type": "number",
+            "field_control_type": "number",
+            "field_description": "Mean_age_study2"
+          }
+        },
+        "depends_on": []
+      }
+    ],
+    "pipeline": [
+      {
+        "stage": 1,
+        "signatures": [
+          "ExtractTextualFields",
+          "ExtractNumericFields"
+        ],
+        "execution": "parallel",
+        "provides_fields": [
+          "most_discussed_gender",
+          "author",
+          "Mean_age_study1",
+          "Mean_age_study2"
+        ],
+        "requires_fields": []
+      }
+    ],
+    "field_coverage": {
+      "most_discussed_gender": "ExtractTextualFields",
+      "author": "ExtractTextualFields",
+      "Mean_age_study1": "ExtractNumericFields",
+      "Mean_age_study2": "ExtractNumericFields"
+    }
+  },
+  "generation_stats": {
+    "total_form_fields": 4,
+    "signatures": 2,
+    "modules": 2,
+    "pipeline_stages": 1,
+    "total_attempts": 0,
+    "signatures_generated": 2,
+    "modules_generated": 2
+  }
+}

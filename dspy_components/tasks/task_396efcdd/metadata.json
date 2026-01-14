@@ -1,0 +1,320 @@
+{
+  "project_id": "c78b95ef-831b-4e84-bc73-067bc3919518",
+  "form_id": "23a1819f-2dbd-44d7-b180-5466c9b50533",
+  "form_data": {
+    "form_name": "ClinicalTrialAnalysis",
+    "form_description": "Extract comprehensive clinical trial data with multi-stage dependencies: demographics \u2192 study design \u2192 interventions \u2192 outcomes \u2192 statistics",
+    "fields": [
+      {
+        "field_name": "study_type",
+        "field_type": "enum",
+        "field_control_type": "dropdown",
+        "field_description": "Type of clinical study design",
+        "options": [
+          "Randomized Controlled Trial",
+          "Cohort Study",
+          "Case-Control Study",
+          "Cross-Sectional Study",
+          "Systematic Review",
+          "Meta-Analysis",
+          "Other"
+        ],
+        "example": "Randomized Controlled Trial"
+      },
+      {
+        "field_name": "total_participants",
+        "field_type": "number",
+        "field_control_type": "number",
+        "field_description": "Total number of participants enrolled in the study",
+        "example": 150
+      },
+      {
+        "field_name": "intervention_name",
+        "field_type": "text",
+        "field_control_type": "text",
+        "field_description": "Name of the primary intervention being tested",
+        "example": "Placebo-controlled oral rinse"
+      },
+      {
+        "field_name": "intervention_dosage",
+        "field_type": "text",
+        "field_control_type": "text",
+        "field_description": "Dosage or frequency of the intervention",
+        "example": "Twice daily for 4 weeks"
+      },
+      {
+        "field_name": "control_group_type",
+        "field_type": "enum",
+        "field_control_type": "dropdown",
+        "field_description": "Type of control group used in the study",
+        "options": [
+          "Placebo",
+          "Active Control",
+          "No Treatment",
+          "Standard Care",
+          "Historical Control",
+          "Not Applicable"
+        ],
+        "example": "Placebo"
+      },
+      {
+        "field_name": "primary_outcome",
+        "field_type": "text",
+        "field_control_type": "text",
+        "field_description": "Primary outcome measure of the study",
+        "example": "Reduction in plaque index at 4 weeks"
+      },
+      {
+        "field_name": "primary_outcome_result",
+        "field_type": "text",
+        "field_control_type": "text",
+        "field_description": "Result of the primary outcome measurement",
+        "example": "Mean reduction of 0.45 (SD 0.12) in intervention group vs 0.23 (SD 0.15) in control"
+      },
+      {
+        "field_name": "statistical_significance",
+        "field_type": "enum",
+        "field_control_type": "dropdown",
+        "field_description": "Whether the primary outcome showed statistical significance",
+        "options": [
+          "Statistically Significant",
+          "Not Statistically Significant",
+          "Not Reported",
+          "Not Applicable"
+        ],
+        "example": "Statistically Significant"
+      },
+      {
+        "field_name": "p_value",
+        "field_type": "number",
+        "field_control_type": "number",
+        "field_description": "P-value for the primary outcome",
+        "example": 0.03
+      },
+      {
+        "field_name": "effect_size",
+        "field_type": "text",
+        "field_control_type": "text",
+        "field_description": "Effect size measure (e.g., Cohen's d, odds ratio, relative risk)",
+        "example": "Cohen's d = 0.65"
+      },
+      {
+        "field_name": "adverse_events_reported",
+        "field_type": "boolean",
+        "field_control_type": "checkbox",
+        "field_description": "Whether adverse events were reported in the study",
+        "example": true
+      },
+      {
+        "field_name": "adverse_events_count",
+        "field_type": "number",
+        "field_control_type": "number",
+        "field_description": "Number of adverse events reported",
+        "example": 5
+      },
+      {
+        "field_name": "follow_up_duration",
+        "field_type": "text",
+        "field_control_type": "text",
+        "field_description": "Duration of follow-up period",
+        "example": "6 months"
+      }
+    ]
+  },
+  "field_mapping": {},
+  "decomposition": {
+    "reasoning_trace": "Step 1: Field Inventory\n- Found 13 fields in form_data\n- 6 text fields: intervention_name, intervention_dosage, primary_outcome, primary_outcome_result, effect_size, follow_up_duration\n- 3 numeric fields: total_participants, p_value, adverse_events_count\n- 3 enum fields: study_type, control_group_type, statistical_significance\n- 1 boolean field: adverse_events_reported\n\nStep 2: Cognitive Behavior Analysis\n- Text extractions (direct): intervention_name, intervention_dosage, primary_outcome, primary_outcome_result, effect_size, follow_up_duration - all extract text verbatim from document\n- Numeric extractions (direct): total_participants, p_value, adverse_events_count - all extract numeric values directly\n- Enum classifications (direct): study_type, control_group_type, statistical_significance - all classify into predefined categories\n- Boolean determinations (direct): adverse_events_reported - determines yes/no condition\n- No aggregation fields identified - all fields extract directly from document without dependencies\n\nStep 3: Grouping Decision\n- Created 4 signatures by grouping fields with same cognitive behavior\n- All text extractions \u2192 ExtractTextualFields (6 fields)\n- All numeric extractions \u2192 ExtractNumericFields (3 fields)\n- All enum classifications \u2192 ClassifyEnumFields (3 fields)\n- Boolean determination \u2192 DetermineBooleanFields (1 field)\n- No aggregation signatures needed as all fields are independent extractions\n\nStep 4: Verification\n- All 13 fields covered across 4 signatures\n- No duplicates\n- All signatures are independent (no dependencies)\n- Minimized signatures by aggressive grouping of same cognitive behavior types",
+    "signatures": [
+      {
+        "name": "ExtractTextualFields",
+        "fields": {
+          "intervention_name": {
+            "field_name": "intervention_name",
+            "field_type": "text",
+            "field_control_type": "text",
+            "field_description": "Name of the primary intervention being tested",
+            "example": "Placebo-controlled oral rinse"
+          },
+          "intervention_dosage": {
+            "field_name": "intervention_dosage",
+            "field_type": "text",
+            "field_control_type": "text",
+            "field_description": "Dosage or frequency of the intervention",
+            "example": "Twice daily for 4 weeks"
+          },
+          "primary_outcome": {
+            "field_name": "primary_outcome",
+            "field_type": "text",
+            "field_control_type": "text",
+            "field_description": "Primary outcome measure of the study",
+            "example": "Reduction in plaque index at 4 weeks"
+          },
+          "primary_outcome_result": {
+            "field_name": "primary_outcome_result",
+            "field_type": "text",
+            "field_control_type": "text",
+            "field_description": "Result of the primary outcome measurement",
+            "example": "Mean reduction of 0.45 (SD 0.12) in intervention group vs 0.23 (SD 0.15) in control"
+          },
+          "effect_size": {
+            "field_name": "effect_size",
+            "field_type": "text",
+            "field_control_type": "text",
+            "field_description": "Effect size measure (e.g., Cohen's d, odds ratio, relative risk)",
+            "example": "Cohen's d = 0.65"
+          },
+          "follow_up_duration": {
+            "field_name": "follow_up_duration",
+            "field_type": "text",
+            "field_control_type": "text",
+            "field_description": "Duration of follow-up period",
+            "example": "6 months"
+          }
+        },
+        "depends_on": []
+      },
+      {
+        "name": "ExtractNumericFields",
+        "fields": {
+          "total_participants": {
+            "field_name": "total_participants",
+            "field_type": "number",
+            "field_control_type": "number",
+            "field_description": "Total number of participants enrolled in the study",
+            "example": 150
+          },
+          "p_value": {
+            "field_name": "p_value",
+            "field_type": "number",
+            "field_control_type": "number",
+            "field_description": "P-value for the primary outcome",
+            "example": 0.03
+          },
+          "adverse_events_count": {
+            "field_name": "adverse_events_count",
+            "field_type": "number",
+            "field_control_type": "number",
+            "field_description": "Number of adverse events reported",
+            "example": 5
+          }
+        },
+        "depends_on": []
+      },
+      {
+        "name": "ClassifyEnumFields",
+        "fields": {
+          "study_type": {
+            "field_name": "study_type",
+            "field_type": "enum",
+            "field_control_type": "dropdown",
+            "field_description": "Type of clinical study design",
+            "options": [
+              "Randomized Controlled Trial",
+              "Cohort Study",
+              "Case-Control Study",
+              "Cross-Sectional Study",
+              "Systematic Review",
+              "Meta-Analysis",
+              "Other"
+            ],
+            "example": "Randomized Controlled Trial"
+          },
+          "control_group_type": {
+            "field_name": "control_group_type",
+            "field_type": "enum",
+            "field_control_type": "dropdown",
+            "field_description": "Type of control group used in the study",
+            "options": [
+              "Placebo",
+              "Active Control",
+              "No Treatment",
+              "Standard Care",
+              "Historical Control",
+              "Not Applicable"
+            ],
+            "example": "Placebo"
+          },
+          "statistical_significance": {
+            "field_name": "statistical_significance",
+            "field_type": "enum",
+            "field_control_type": "dropdown",
+            "field_description": "Whether the primary outcome showed statistical significance",
+            "options": [
+              "Statistically Significant",
+              "Not Statistically Significant",
+              "Not Reported",
+              "Not Applicable"
+            ],
+            "example": "Statistically Significant"
+          }
+        },
+        "depends_on": []
+      },
+      {
+        "name": "DetermineBooleanFields",
+        "fields": {
+          "adverse_events_reported": {
+            "field_name": "adverse_events_reported",
+            "field_type": "boolean",
+            "field_control_type": "checkbox",
+            "field_description": "Whether adverse events were reported in the study",
+            "example": true
+          }
+        },
+        "depends_on": []
+      }
+    ],
+    "pipeline": [
+      {
+        "stage": 1,
+        "signatures": [
+          "ExtractTextualFields",
+          "ExtractNumericFields",
+          "ClassifyEnumFields",
+          "DetermineBooleanFields"
+        ],
+        "execution": "parallel",
+        "provides_fields": [
+          "intervention_name",
+          "intervention_dosage",
+          "primary_outcome",
+          "primary_outcome_result",
+          "effect_size",
+          "follow_up_duration",
+          "total_participants",
+          "p_value",
+          "adverse_events_count",
+          "study_type",
+          "control_group_type",
+          "statistical_significance",
+          "adverse_events_reported"
+        ],
+        "requires_fields": []
+      }
+    ],
+    "field_coverage": {
+      "intervention_name": "ExtractTextualFields",
+      "intervention_dosage": "ExtractTextualFields",
+      "primary_outcome": "ExtractTextualFields",
+      "primary_outcome_result": "ExtractTextualFields",
+      "effect_size": "ExtractTextualFields",
+      "follow_up_duration": "ExtractTextualFields",
+      "total_participants": "ExtractNumericFields",
+      "p_value": "ExtractNumericFields",
+      "adverse_events_count": "ExtractNumericFields",
+      "study_type": "ClassifyEnumFields",
+      "control_group_type": "ClassifyEnumFields",
+      "statistical_significance": "ClassifyEnumFields",
+      "adverse_events_reported": "DetermineBooleanFields"
+    }
+  },
+  "generation_stats": {
+    "total_form_fields": 13,
+    "signatures": 4,
+    "modules": 4,
+    "pipeline_stages": 1,
+    "total_attempts": 0,
+    "signatures_generated": 4,
+    "modules_generated": 4
+  }
+}
