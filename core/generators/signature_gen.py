@@ -26,7 +26,7 @@ class SignatureGenerator:
         """
         model_name = "anthropic:claude-sonnet-4-5-20250929"
         self.model = get_langchain_model(
-            model_name, temperature=0.3, max_tokens=4000)
+            model_name, temperature=0.3, max_tokens=8000)
         self.validator = SignatureValidator()
 
     def _generate_spec_from_enriched_sig(
@@ -93,15 +93,25 @@ class SignatureGenerator:
 
             return text
 
+        # Check if we need typing imports for Dict[str, Any]
+        needs_typing_import = any(
+            "Dict[str, Any]" in field.field_type
+            for field in spec.input_fields + spec.output_fields
+        )
+
         # Start with imports and class definition
-        code_lines = [
-            "import dspy",
+        code_lines = ["import dspy"]
+
+        if needs_typing_import:
+            code_lines.append("from typing import Dict, Any")
+
+        code_lines.extend([
             "",
             "",
             f"class {spec.class_name}(dspy.Signature):",
             f'    """{safe_triple_quote_string(spec.class_docstring)}"""',
             ""
-        ]
+        ])
 
         # Add input fields
         for input_field in spec.input_fields:
@@ -217,6 +227,7 @@ class SignatureGenerator:
     ) -> str:
         """
         Assemble complete signatures.py file from generated signature codes.
+        Deduplicates imports by removing them from individual signatures.
 
         Args:
             signatures: List of signature dicts with 'code' and 'class_name' keys
@@ -225,8 +236,18 @@ class SignatureGenerator:
         Returns:
             Complete signatures.py file content
         """
-        lines = [
-            "import dspy",
+        # Check if any signature uses Dict[str, Any]
+        needs_typing_import = any(
+            "Dict[str, Any]" in sig["code"] for sig in signatures
+        )
+
+        # Add unified imports at top
+        lines = ["import dspy"]
+
+        if needs_typing_import:
+            lines.append("from typing import Dict, Any")
+
+        lines.extend([
             "",
             "",
             "# " + "=" * 76,
@@ -234,10 +255,27 @@ class SignatureGenerator:
             "# " + "=" * 76,
             "",
             "",
-        ]
+        ])
 
+        # Add signatures, stripping their individual imports
         for sig in signatures:
-            lines.append(sig["code"])
+            code = sig["code"]
+
+            # Remove import lines from individual signatures
+            code_lines = code.split("\n")
+            filtered_lines = []
+            for line in code_lines:
+                # Skip import lines
+                if line.strip().startswith("import ") or line.strip().startswith("from "):
+                    continue
+                filtered_lines.append(line)
+
+            # Remove leading empty lines
+            while filtered_lines and not filtered_lines[0].strip():
+                filtered_lines.pop(0)
+
+            cleaned_code = "\n".join(filtered_lines)
+            lines.append(cleaned_code)
             lines.append("\n\n")
 
         # Add __all__ export

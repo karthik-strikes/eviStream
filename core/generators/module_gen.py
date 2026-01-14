@@ -50,10 +50,11 @@ class ModuleGenerator:
         # Format fallback structure for code
         fallback_json = json.dumps(fallback_structure, indent=12)
 
-        # Build field extraction code
+        # Build field extraction code with source grounding support
+        # Each field is a Dict[str, Any] with "value" and "source_text" keys
         field_extraction = "{\n"
         for field in field_names:
-            field_extraction += f'            "{field}": getattr(result, "{field}", "NR"),\n'
+            field_extraction += f'            "{field}": getattr(result, "{field}", {{"value": "NR", "source_text": "NR"}}),\n'
         field_extraction += "        }"
 
         # Generate module code using template
@@ -151,6 +152,7 @@ class {module_class_name}(dspy.Module):
     def create_fallback_structure(self, spec: Dict[str, Any]) -> Dict[str, Any]:
         """
         Create fallback structure for error recovery in modules.
+        With source grounding, all fields return {"value": "NR", "source_text": "NR"}.
 
         Args:
             spec: Questionnaire spec with output_structure
@@ -161,20 +163,13 @@ class {module_class_name}(dspy.Module):
         output_structure = spec.get("output_structure", {})
 
         if isinstance(output_structure, dict):
-            # Create fallback with "NR" values
-            def create_default(value):
-                if isinstance(value, dict):
-                    return {k: create_default(v) for k, v in value.items()}
-                elif isinstance(value, str) and "bool" in value:
-                    return False
-                elif isinstance(value, str) and "int" in value:
-                    return 0
-                else:
-                    return "NR"
-
-            return create_default(output_structure)
+            # Create fallback with source grounding format
+            fallback = {}
+            for field_name in output_structure.keys():
+                fallback[field_name] = {"value": "NR", "source_text": "NR"}
+            return fallback
         else:
-            return "NR"
+            return {"value": "NR", "source_text": "NR"}
 
     def assemble_modules_file(
         self,

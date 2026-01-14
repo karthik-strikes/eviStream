@@ -272,10 +272,6 @@ class WorkflowOrchestrator:
         print(f"STAGE: Generating Modules")
         print(f"{'='*70}")
 
-        print("kicking off module generation")
-        print(state)
-        print("end of state")
-
         # Check if signatures were generated
         if "signatures_code" not in state or not state["signatures_code"]:
             error_msg = "No signatures available for module generation"

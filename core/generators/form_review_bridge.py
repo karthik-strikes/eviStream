@@ -471,7 +471,7 @@ class FormDecompositionService:
                     decomposition = result.get("decomposition", {})
                     schema_name = register_dynamic_schema(
                         project_id, form_id, form_data, decomposition=decomposition)
-                    logger.info(f"Registered schema: {schema_name}")
+
                 except Exception as reg_error:
                     logger.error(
                         f"Failed to register schema: {reg_error}")

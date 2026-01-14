@@ -23,11 +23,13 @@ ENV/
 cache/
 output/
 logs/
+test/
 temp_uploads/
 *.db
 
 # Dynamic schemas (generated at runtime)
 dspy_components/tasks/dynamic_*/
+dspy_components/tasks/
 
 # CSV and log outputs
 *.csv

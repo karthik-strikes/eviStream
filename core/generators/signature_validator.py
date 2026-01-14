@@ -60,6 +60,11 @@ def validate_imports(code: str) -> Tuple[bool, List[str]]:
     if "import dspy" not in code:
         errors.append("Missing required import: 'import dspy'")
 
+    # If Dict[str, Any] is used, check for typing import
+    if "Dict[str, Any]" in code and "from typing import" not in code and "import typing" not in code:
+        errors.append(
+            "Missing required import: 'from typing import Dict, Any' (needed for Dict[str, Any] type hints)")
+
     return len(errors) == 0, errors
 
 
@@ -117,14 +122,18 @@ def validate_field_definitions(code: str) -> Tuple[bool, List[str]]:
     if "dspy.OutputField" not in code:
         errors.append("Must have at least one dspy.OutputField")
 
-    # Check for type hints
+    # Check for type hints (including Dict[str, Any] for source grounding)
     has_type_hints = (
         ": str = dspy.InputField" in code or
-        ": str = dspy.OutputField" in code
+        ": str = dspy.OutputField" in code or
+        ": Dict[str, Any] = dspy.OutputField" in code or
+        ": int = dspy." in code or
+        ": float = dspy." in code or
+        ": bool = dspy." in code
     )
     if not has_type_hints:
         warnings.append(
-            "Consider adding type hints (e.g., field_name: str = dspy.InputField(...))"
+            "Consider adding type hints (e.g., field_name: str = dspy.InputField(...) or field_name: Dict[str, Any] = dspy.OutputField(...))"
         )
 
     return len(errors) == 0, errors + warnings
@@ -133,6 +142,7 @@ def validate_field_definitions(code: str) -> Tuple[bool, List[str]]:
 def validate_field_descriptions(code: str) -> Tuple[bool, List[str]]:
     """
     Validate that fields have proper descriptions with structure.
+    Checks for source grounding documentation.
 
     Args:
         code: Python code string
@@ -144,14 +154,9 @@ def validate_field_descriptions(code: str) -> Tuple[bool, List[str]]:
 
     # Check for output field documentation sections
     if "dspy.OutputField" in code:
-        has_structure = "Structure:" in code or "structure" in code.lower()
         has_rules = "Rules:" in code or "rules" in code.lower()
         has_examples = "Examples:" in code or "examples" in code.lower()
-
-        if not has_structure:
-            warnings.append(
-                "Output field should include 'Structure:' section describing format"
-            )
+        has_source_grounding = "Source Grounding:" in code or "source_text" in code.lower()
 
         if not has_rules:
             warnings.append(
@@ -161,6 +166,12 @@ def validate_field_descriptions(code: str) -> Tuple[bool, List[str]]:
         if not has_examples:
             warnings.append(
                 "Output field should include 'Examples:' section for clarity"
+            )
+
+        # Check for source grounding (new requirement)
+        if "Dict[str, Any]" in code and not has_source_grounding:
+            warnings.append(
+                "Output fields with Dict[str, Any] type should include 'Source Grounding:' section"
             )
 
     return True, warnings
@@ -307,6 +318,7 @@ def validate_field_examples(
 ) -> Tuple[bool, List[str]]:
     """
     Validate that field examples are included.
+    Checks for both old format and new source grounding format.
 
     Args:
         code: Generated signature code
@@ -321,13 +333,23 @@ def validate_field_examples(
     if not example:
         return True, warnings
 
-    # Convert example to string for comparison (handles int, float, etc.)
-    example_str = str(example)
-
-    if example_str not in code and "Examples:" not in code:
+    # Check for Examples section
+    if "Examples:" not in code:
         warnings.append(
-            f"Field '{field_name}' has example but no examples section in code"
+            f"Field '{field_name}' should have an 'Examples:' section"
         )
+        return True, warnings
+
+    # For source grounding format, check for "value" and "source_text" keys in examples
+    if "Dict[str, Any]" in code:
+        if '"value":' not in code and "'value':" not in code:
+            warnings.append(
+                f"Field '{field_name}' with source grounding should have examples with 'value' key"
+            )
+        if '"source_text":' not in code and "'source_text':" not in code:
+            warnings.append(
+                f"Field '{field_name}' with source grounding should have examples with 'source_text' key"
+            )
 
     return True, warnings
 

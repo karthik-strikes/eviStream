@@ -17,11 +17,22 @@ def build_field_definition(
     options: Optional[List[str]] = None,
     example: Optional[str] = None,
     extraction_hints: Optional[str] = None,
+    subform_fields: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
     """
     Build the canonical JSON object for a single form field.
 
     Centralising this makes it easier to log / validate field structures.
+    
+    Args:
+        name: Field name
+        data_type: Field data type (text, number, enum, array, etc.)
+        control_type: UI control type (text, dropdown, subform_table, etc.)
+        description: Field description
+        options: Optional list of options (for dropdowns/checkboxes)
+        example: Optional example value
+        extraction_hints: Optional hints for extraction
+        subform_fields: Optional nested fields for subform/hierarchical data
     """
     cleaned_name = name.strip()
     cleaned_description = description.strip()
@@ -38,6 +49,8 @@ def build_field_definition(
         field["example"] = example.strip()
     if extraction_hints:
         field["extraction_hints"] = extraction_hints.strip()
+    if subform_fields:
+        field["subform_fields"] = subform_fields
     return field
 
 

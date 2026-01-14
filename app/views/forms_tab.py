@@ -438,6 +438,7 @@ def render_manual_form_builder(current_project):
                     "number": "Number",
                     "dropdown": "Dropdown",
                     "checkbox_group_with_text": "Checkboxes with Text",
+                    "subform_table": "Subform/Repeating Table",
                 }
 
                 control_type_raw = (
@@ -454,6 +455,10 @@ def render_manual_form_builder(current_project):
                 if field.get("options"):
                     options_count = len(field["options"])
                     options_badge = f' <span style="background: #e0ecff; color: #1e3a8a; padding: 0.15rem 0.4rem; border-radius: 999px; font-size: 0.7rem;">{options_count} options</span>'
+                
+                if field.get("subform_fields"):
+                    subfields_count = len(field["subform_fields"])
+                    options_badge = f' <span style="background: #dbeafe; color: #1e40af; padding: 0.15rem 0.4rem; border-radius: 999px; font-size: 0.7rem;">{subfields_count} subfields</span>'
 
                 st.markdown(
                     f"""
@@ -488,6 +493,20 @@ def render_manual_form_builder(current_project):
                 ):
                     for opt in field["options"]:
                         st.caption(f"• {opt}")
+            
+            if field.get("subform_fields"):
+                with st.expander(
+                    f"Subfields for {field.get('field_name') or field.get('name')}",
+                    expanded=False,
+                ):
+                    for subfield in field["subform_fields"]:
+                        st.markdown(
+                            f"**{subfield.get('field_name')}** ({subfield.get('field_type')})"
+                        )
+                        st.caption(f"{subfield.get('field_description', '')}")
+                        if subfield.get("options"):
+                            st.caption(f"Options: {', '.join(subfield['options'])}")
+                        st.markdown("---")
 
             st.markdown("---")
     else:
@@ -519,6 +538,7 @@ def render_manual_form_builder(current_project):
                 "desc": "Free text answer",
                 "example": "Study setting, Country, Dates",
                 "needs_options": False,
+                "needs_subfields": False,
                 "icon": "",
             },
             "Number": {
@@ -527,6 +547,7 @@ def render_manual_form_builder(current_project):
                 "desc": "Numeric value only",
                 "example": "Sample size, Age, Duration",
                 "needs_options": False,
+                "needs_subfields": False,
                 "icon": "",
             },
             "Dropdown": {
@@ -535,6 +556,7 @@ def render_manual_form_builder(current_project):
                 "desc": "Pick ONE option from a list",
                 "example": "Study type, Funding source",
                 "needs_options": True,
+                "needs_subfields": False,
                 "icon": "",
             },
             "Checkboxes with Text": {
@@ -543,6 +565,16 @@ def render_manual_form_builder(current_project):
                 "desc": "Multiple selections with values",
                 "example": "Demographics (N, %), Patient data",
                 "needs_options": True,
+                "needs_subfields": False,
+                "icon": "",
+            },
+            "Subform/Repeating Table": {
+                "value": "subform_table",
+                "data_type": "array",
+                "desc": "Repeating hierarchical data structure",
+                "example": "Interventions, Outcomes, Timepoints",
+                "needs_options": False,
+                "needs_subfields": True,
                 "icon": "",
             },
         }
@@ -578,6 +610,33 @@ def render_manual_form_builder(current_project):
                     <option>Option 1</option>
                     <option>Option 2</option>
                 </select>
+            </div>
+            """
+        elif control_type == "subform_table":
+            visual_example = """
+            <div style="margin-top: 0.5rem;">
+                <table style="width: 100%; border-collapse: collapse; border: 1px solid #d1d5db; border-radius: 0.4rem; font-size: 0.85rem;">
+                    <thead style="background: #f3f4f6;">
+                        <tr>
+                            <th style="padding: 0.5rem; text-align: left; border-bottom: 1px solid #d1d5db;">Column 1</th>
+                            <th style="padding: 0.5rem; text-align: left; border-bottom: 1px solid #d1d5db;">Column 2</th>
+                            <th style="padding: 0.5rem; text-align: left; border-bottom: 1px solid #d1d5db;">Column 3</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="padding: 0.5rem; border-bottom: 1px solid #e5e7eb;">Row 1 Value</td>
+                            <td style="padding: 0.5rem; border-bottom: 1px solid #e5e7eb;">Data</td>
+                            <td style="padding: 0.5rem; border-bottom: 1px solid #e5e7eb;">Info</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 0.5rem;">Row 2 Value</td>
+                            <td style="padding: 0.5rem;">Data</td>
+                            <td style="padding: 0.5rem;">Info</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div style="margin-top: 0.3rem; font-size: 0.75rem; color: #6b7280;">+ Add Row</div>
             </div>
             """
         else:
@@ -616,6 +675,7 @@ def render_manual_form_builder(current_project):
 
         field_type = selected_control["data_type"]
         needs_options = selected_control["needs_options"]
+        needs_subfields = selected_control["needs_subfields"]
 
     with add_c2:
         st.markdown("**What should the AI extract?**")
@@ -625,6 +685,7 @@ def render_manual_form_builder(current_project):
             "number": "Describe what numeric value to extract...\n\nExample: What is the total number of participants at baseline? Use 'NR' if not reported.",
             "dropdown": "Describe which option to select from the list...\n\nExample: What is the study design? Select from the options below.",
             "checkbox_group_with_text": "Describe what data points to extract for each checkbox field...\n\nExample: Extract all available baseline demographics. Check and fill values for each reported metric. Use 'NR' for not reported.",
+            "subform_table": "Describe what repeating data to extract. The AI will find ALL instances and create a table...\n\nExample: Extract all interventions tested in the study. For each intervention, extract name, dosage, and duration.",
         }
 
         placeholder_text = smart_defaults.get(
@@ -662,6 +723,120 @@ def render_manual_form_builder(current_project):
             help="Tell the AI where to find this information in the PDF",
             label_visibility="collapsed",
         )
+
+    # Subform fields section
+    if needs_subfields:
+        st.markdown("---")
+        st.markdown("**Define Subform Fields (Table Columns)**")
+        st.caption("Each column represents data to extract for EACH instance found in the document")
+
+        # Initialize session state for subfields
+        subfield_key = f"subfields_for_{field_name if field_name else 'new_field'}"
+        if subfield_key not in st.session_state:
+            st.session_state[subfield_key] = []
+
+        # Show existing subfields
+        if st.session_state[subfield_key]:
+            st.markdown("**Current Subfields:**")
+            for idx, subfield in enumerate(st.session_state[subfield_key]):
+                col1, col2, col3 = st.columns([3, 2, 1])
+                with col1:
+                    st.markdown(f"**{subfield['field_name']}**")
+                    st.caption(subfield.get('field_description', ''))
+                with col2:
+                    st.markdown(f"*{subfield['field_type']}*")
+                with col3:
+                    if st.button("Remove", key=f"rm_subfield_{subfield_key}_{idx}"):
+                        st.session_state[subfield_key].pop(idx)
+                        st.rerun()
+        else:
+            st.info("No subfields defined yet. Add at least one subfield below.")
+
+        # Add subfield form
+        st.markdown("---")
+        st.markdown("**Add New Subfield:**")
+
+        subcol1, subcol2 = st.columns([1, 1])
+
+        with subcol1:
+            subfield_name = st.text_input(
+                "Subfield Name",
+                placeholder="e.g., intervention_name, dosage, timepoint",
+                key=f"subfield_name_input_{subfield_key}",
+                help="Name of this column in the repeating table"
+            )
+
+            subfield_type = st.selectbox(
+                "Data Type",
+                options=["text", "number", "enum"],
+                key=f"subfield_type_input_{subfield_key}",
+                help="Type of data for this column"
+            )
+
+        with subcol2:
+            subfield_desc = st.text_area(
+                "Description",
+                placeholder="What should the AI extract for this column?",
+                key=f"subfield_desc_input_{subfield_key}",
+                height=95,
+                help="Clear description helps AI extract accurate data"
+            )
+
+        # Subfield options if enum type
+        subfield_options = None
+        if subfield_type == "enum":
+            st.markdown("**Options (for enum type):**")
+            subfield_options_text = st.text_area(
+                "Options (one per line)",
+                placeholder="Option 1\nOption 2\nOption 3",
+                key=f"subfield_options_input_{subfield_key}",
+                height=80,
+                label_visibility="collapsed"
+            )
+            if subfield_options_text:
+                subfield_options = [opt.strip() for opt in subfield_options_text.split("\n") if opt.strip()]
+
+        if st.button("Add Subfield", key=f"add_subfield_btn_{subfield_key}"):
+            if not subfield_name or not subfield_desc:
+                st.error("Subfield name and description are required")
+            else:
+                new_subfield = {
+                    "field_name": subfield_name.strip(),
+                    "field_type": subfield_type,
+                    "field_description": subfield_desc.strip()
+                }
+                if subfield_options:
+                    new_subfield["options"] = subfield_options
+
+                st.session_state[subfield_key].append(new_subfield)
+                st.success(f"Added subfield: {subfield_name}")
+                st.rerun()
+
+        # Preview table structure
+        if st.session_state[subfield_key]:
+            st.markdown("---")
+            st.markdown("**Preview: Table Structure**")
+            
+            # Build table header
+            header_html = "<tr>"
+            for subfield in st.session_state[subfield_key]:
+                header_html += f"<th style='padding: 0.5rem; text-align: left; border-bottom: 2px solid #d1d5db; background: #f3f4f6;'>{subfield['field_name']}</th>"
+            header_html += "</tr>"
+            
+            # Sample rows
+            sample_row = "<tr>"
+            for subfield in st.session_state[subfield_key]:
+                sample_row += "<td style='padding: 0.5rem; border-bottom: 1px solid #e5e7eb;'>Sample data</td>"
+            sample_row += "</tr>"
+            
+            table_html = f"""
+            <table style="width: 100%; border-collapse: collapse; border: 1px solid #d1d5db; border-radius: 0.4rem; font-size: 0.85rem; margin-top: 0.5rem;">
+                <thead>{header_html}</thead>
+                <tbody>{sample_row}{sample_row}</tbody>
+            </table>
+            <div style="margin-top: 0.3rem; font-size: 0.75rem; color: #6b7280;">AI will extract multiple rows, one for each instance found</div>
+            """
+            st.markdown(table_html, unsafe_allow_html=True)
 
     # Options section
     if needs_options:
@@ -789,6 +964,32 @@ def render_manual_form_builder(current_project):
                 st.error(
                     f"{control_display_name} requires at least one option."
                 )
+            elif needs_subfields:
+                # Validate subform fields
+                subfield_key = f"subfields_for_{field_name if field_name else 'new_field'}"
+                subform_fields = st.session_state.get(subfield_key, [])
+                
+                if not subform_fields:
+                    st.error("Subform requires at least one subfield. Add subfields above.")
+                else:
+                    new_field = build_field_definition(
+                        name=field_name,
+                        data_type=field_type,
+                        control_type=control_type,
+                        description=field_description,
+                        options=None,
+                        example=example_value if "example_value" in locals() else None,
+                        extraction_hints=extraction_hints if "extraction_hints" in locals() else None,
+                        subform_fields=subform_fields,
+                    )
+
+                    st.session_state.form_fields.append(new_field)
+                    
+                    # Clear subfields from session state
+                    if subfield_key in st.session_state:
+                        del st.session_state[subfield_key]
+                    
+                    st.success(f"Added subform field '{field_name}' with {len(subform_fields)} subfields")
             else:
                 new_field = build_field_definition(
                     name=field_name,
