@@ -16,11 +16,6 @@ from collections import deque
 logger = logging.getLogger(__name__)
 
 
-# ============================================================================
-# HELPER FUNCTIONS - DAG VALIDATION
-# ============================================================================
-
-
 def _topological_sort(
     dependency_graph: Dict[str, List[str]],
     output_providers: Dict[str, str]
@@ -278,11 +273,6 @@ def validate_pipeline_stages(
     return len(issues) == 0, issues
 
 
-# ============================================================================
-# MAIN VALIDATOR CLASS
-# ============================================================================
-
-
 class DecompositionValidator:
     """
     Comprehensive validator for form decomposition results.
@@ -327,9 +317,6 @@ class DecompositionValidator:
             if f.get("field_name") or f.get("name")
         )
 
-        # ====================================================================
-        # VALIDATION 1: FIELD COVERAGE
-        # ====================================================================
         covered_fields = set(field_coverage.keys())
         missing_fields = sorted(list(form_fields - covered_fields))
         extra_fields = sorted(list(covered_fields - form_fields))
@@ -357,9 +344,6 @@ class DecompositionValidator:
                 f"Extra fields in decomposition not in form: {extra_fields}"
             )
 
-        # ====================================================================
-        # VALIDATION 2: DUPLICATE FIELD ASSIGNMENTS
-        # ====================================================================
         has_duplicates, duplicates = detect_duplicate_field_assignments(
             signatures
         )
@@ -371,9 +355,6 @@ class DecompositionValidator:
                 all_issues.append(issue)
                 logger.warning(issue)
 
-        # ====================================================================
-        # VALIDATION 3: DAG DEPENDENCIES
-        # ====================================================================
         dag_valid, dag_issues = validate_dag_dependencies(signatures)
 
         validation_results["dag_validation"] = {
@@ -388,9 +369,6 @@ class DecompositionValidator:
             all_issues.extend(dag_issues)
             logger.warning(f"DAG validation issues: {dag_issues}")
 
-        # ====================================================================
-        # VALIDATION 4: PIPELINE FLOW
-        # ====================================================================
         pipeline_valid, pipeline_issues = validate_pipeline_stages(
             pipeline, signatures
         )
@@ -404,9 +382,6 @@ class DecompositionValidator:
             all_issues.extend(pipeline_issues)
             logger.warning(f"Pipeline validation issues: {pipeline_issues}")
 
-        # ====================================================================
-        # FINAL RESULT
-        # ====================================================================
         validation_results["passed"] = len(all_issues) == 0
 
         if validation_results["passed"]:

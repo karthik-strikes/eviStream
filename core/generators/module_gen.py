@@ -30,41 +30,18 @@ class ModuleGenerator:
         signature_class_name: str,
         fallback_structure: Dict[str, Any],
     ) -> str:
-        """
-        Generate an Async DSPy Module using deterministic template.
-
-        No LLM needed - modules are pure boilerplate!
-
-        Args:
-            signature_class_name: Name of the signature class to wrap
-            fallback_structure: Dict of field_name -> default_value ([] for arrays, dict for regular)
-
-        Returns:
-            Complete Python code for the async module
-        """
+        """Generate async DSPy Module using deterministic template (no LLM needed)."""
         module_class_name = f"Async{signature_class_name}Extractor"
-
-        # Extract field names for result building
         field_names = list(fallback_structure.keys())
-
-        # Format fallback structure for code
         fallback_json = json.dumps(fallback_structure, indent=12)
 
-        # Build field extraction code with support for both regular and array fields
-        # Regular fields: Dict[str, Any] with "value" and "source_text" keys
-        # Array fields: List[Dict[str, Any]] - extracted directly
         field_extraction = "{\n"
         for field in field_names:
-            # Check if this is an array field by looking at fallback value
             if fallback_structure[field] == []:
-                # Array field (subform) - extract directly as List[Dict[str, Any]]
                 field_extraction += f'            "{field}": getattr(result, "{field}", []),\n'
             else:
-                # Regular field - extract with source grounding
                 field_extraction += f'            "{field}": getattr(result, "{field}", {{"value": "NR", "source_text": "NR"}}),\n'
         field_extraction += "        }"
-
-        # Generate module code using template
         code = f'''
 
 
@@ -73,7 +50,6 @@ class {module_class_name}(dspy.Module):
 
     def __init__(self):
         super().__init__()
-        # Use ChainOfThought for better reasoning
         self.extract = dspy.ChainOfThought({signature_class_name})
 
     async def __call__(self, markdown_content: str, **kwargs) -> Dict[str, Any]:
@@ -109,35 +85,19 @@ class {module_class_name}(dspy.Module):
         signature_class_name: str,
         output_field_name: str,
         fallback_structure: Dict[str, Any],
-        max_attempts: int = 1,  # No retry needed for templates!
+        max_attempts: int = 1,
     ) -> Dict[str, Any]:
-        """
-        Generate an async DSPy module that wraps a signature.
-
-        Uses deterministic template - always succeeds on first try!
-
-        Args:
-            signature_class_name: Name of the signature class
-            output_field_name: Name of output field (kept for compatibility, not used)
-            fallback_structure: Default structure for error recovery
-            max_attempts: Kept for compatibility (always 1)
-
-        Returns:
-            dict with 'code', 'is_valid', 'attempts', 'errors'
-        """
+        """Generate async DSPy module using deterministic template."""
         try:
-            # Generate code using template - fast and deterministic!
             code = self.generate_module_code(
                 signature_class_name=signature_class_name,
                 fallback_structure=fallback_structure
             )
 
-            # Show generated code for debugging
             print("\n--- Generated Module Code ---")
             print(code)
-            print("--- End of Generated Code ---\n")
+            print("---\n")
 
-            # Validate (should always pass with template)
             is_valid, issues = self.validator.validate_module(code)
 
             return {
@@ -157,34 +117,19 @@ class {module_class_name}(dspy.Module):
             }
 
     def create_fallback_structure(self, enriched_sig: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Create fallback structure for error recovery in modules.
-        
-        - Regular fields: {"value": "NR", "source_text": "NR"}
-        - Array fields (subforms): []
-
-        Args:
-            enriched_sig: Enriched signature with field metadata
-
-        Returns:
-            Fallback structure with default values
-        """
+        """Create fallback structure for error recovery."""
         fields_metadata = enriched_sig.get("fields", {})
 
         if isinstance(fields_metadata, dict):
             fallback = {}
             for field_name, field_meta in fields_metadata.items():
-                # Check if this is an array field (subform)
                 field_type = field_meta.get("field_type", "text")
                 if field_type == "array":
-                    # Subform fields return empty array
                     fallback[field_name] = []
                 else:
-                    # Regular fields return source-grounded NR
                     fallback[field_name] = {"value": "NR", "source_text": "NR"}
             return fallback
-        else:
-            return {"value": "NR", "source_text": "NR"}
+        return {"value": "NR", "source_text": "NR"}
 
     def assemble_modules_file(
         self,

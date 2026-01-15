@@ -10,11 +10,9 @@ from typing import Dict, List, Any, Tuple
 from collections import defaultdict
 import numpy as np
 from scipy.optimize import linear_sum_assignment
-from sklearn.metrics import cohen_kappa_score
 from dspy_components.utility_signatures import SemanticMatcher
 from core.config import EVALUATION_MODEL, EVALUATION_TEMPERATURE
 from utils.lm_config import get_dspy_model
-
 from core.field_extractor import extract_fields_from_signature
 from pathlib import Path
 
@@ -74,20 +72,14 @@ class AsyncMedicalExtractionEvaluator:
         self.exact_fields = list(
             set(self.exact_fields) - {'Ref_ID', 'filename'})
 
-        # Validate: exact_fields + semantic_fields should cover required_fields
         all_defined = set(self.semantic_fields) | set(self.exact_fields)
         required_set = set(self.required_fields)
 
         if all_defined != required_set:
             missing = required_set - all_defined
             extra = all_defined - required_set
-            error_msg = []
-            if missing:
-                error_msg.append(f"Missing from semantic/exact: {missing}")
-            if extra:
-                error_msg.append(f"Extra in semantic/exact: {extra}")
-            # Warn but don't crash for now, or raise if strict
-            print(f"WARNING: Field mismatch: {error_msg}")
+            if missing or extra:
+                print(f"WARNING: Field mismatch - Missing: {missing}, Extra: {extra}")
 
         # Persistent caches with configurable directory
         import os
@@ -195,22 +187,7 @@ class AsyncMedicalExtractionEvaluator:
             return is_equiv
 
         except Exception as e:
-            # THIS IS THE FIX:
-            # A failed API call is an EVALUATION FAILURE, not a data mismatch.
-            # We must log it clearly and return False (0.0 score) instead of
-            # falling back to a doomed-to-fail exact match.
-
-            # (Make sure to 'import datetime' at the top of your file)
-            print(f"\n--- [CRITICAL SEMANTIC MATCH ERROR] ---")
-            print(f"Timestamp: {datetime.datetime.now()}")
-            print(f"Field: {field_name}")
-            print(f"Error Type: {type(e).__name__}")
-            print(f"Error Message: {e}")
-            print(f"Text1 (Extracted): {text1[:100]}...")
-            print(f"Text2 (Ground Truth): {text2[:100]}...")
-            print(f"-------------------------------------------\n")
-
-            # A failed comparison is not a match.
+            print(f"SEMANTIC MATCH ERROR - Field: {field_name}, Error: {type(e).__name__}: {e}")
             return False
 
     async def semantic_similarity(self, text1: str, text2: str, field_name: str) -> float:
@@ -232,9 +209,6 @@ class AsyncMedicalExtractionEvaluator:
         self._semantic_cache[cache_key] = score
         return score
 
-    # ----------------------------
-    # Field-Level Matching
-    # ----------------------------
     async def field_match_score(self, extracted_value: Any, ground_truth_value: Any, field_name: str) -> float:
         """
         Calculate match score between extracted and ground truth values with robust normalization.
@@ -264,15 +238,15 @@ class AsyncMedicalExtractionEvaluator:
         val = re.sub(r'\s+', ' ', val)
         field_name_lower = field_name.lower()
 
-        if field_name_lower.endswith('_n') or field_name_lower.endswith('_percent') or field_name_lower.endswith('_tendency') or field_name_lower.endswith('_variability') or field_name_lower.endswith('_randomized'):
+        numeric_suffixes = ('_n', '_percent', '_tendency', '_variability', '_randomized')
+        if field_name_lower.endswith(numeric_suffixes):
             val = self.normalize_numeric(val)
-        elif 'filename' in field_name.lower():
+        elif 'filename' in field_name_lower:
             val = re.sub(r'^_+', '', val)
-        elif 'range' in field_name.lower():
+        elif 'range' in field_name_lower:
             val = self.normalize_range(val)
 
-        val = val.rstrip('.,;')
-        return val
+        return val.rstrip('.,;')
 
     def normalize_range(self, value: str) -> str:
         """Normalize range values to a consistent format."""
@@ -283,14 +257,11 @@ class AsyncMedicalExtractionEvaluator:
         return normalized
 
     def normalize_numeric(self, value: str) -> str:
-        """Convert numeric value to the next highest whole number (ceiling)."""
+        """Convert numeric value to ceiling."""
         if not value:
             return value
         try:
-            num = float(value)
-            # --- FIX: Use math.ceil() to round up (e.g., 3.9 -> 4) ---
-            truncated_value = math.ceil(num)
-            return str(truncated_value)
+            return str(math.ceil(float(value)))
         except (ValueError, TypeError):
             return value
 
@@ -310,9 +281,6 @@ class AsyncMedicalExtractionEvaluator:
             return value.strip().lower() in empty_indicators
         return not bool(value)
 
-    # ----------------------------
-    # Groupable Field Alignment
-    # ----------------------------
     def _extract_group_items(self, record: Dict, pattern: str, all_fields: List[str], max_slots: int) -> List[Dict]:
         """Extract group items from a record based on pattern."""
         prefix = pattern.split("_{i}_")[0]
@@ -342,10 +310,6 @@ class AsyncMedicalExtractionEvaluator:
             logical_field_name = f"{base_prefix}_1_{key_field}"
             score = await self.field_match_score(ext_val, gt_val, logical_field_name)
             scores.append(score)
-
-            # # Optional: A new debug print for the alignment phase
-            # if "Name" in logical_field_name:
-            #     print(f"DEBUG (Alignment): {logical_field_name} - Extracted: {ext_val} vs GT: {gt_val} - Score: {score}")
 
         return sum(scores) / len(scores) if scores else 0.0
 
@@ -458,9 +422,6 @@ class AsyncMedicalExtractionEvaluator:
 
         return aligned_extracted, aligned_gt
 
-    # ----------------------------
-    # Unified Comparison Pipeline
-    # ----------------------------
     async def _run_comparison_pipeline(self, extracted_records: List[Dict], ground_truth_records: List[Dict]):
         """
         UNIFIED PIPELINE: Align + Compare + Match
@@ -553,9 +514,6 @@ class AsyncMedicalExtractionEvaluator:
 
         return pipeline_results
 
-    # ----------------------------
-    # Metric Derivation Methods
-    # ----------------------------
     def _calculate_record_metrics(self, matches: List[Tuple], extracted_records: List[Dict], ground_truth_records: List[Dict]) -> Dict:
         """Calculate precision/recall/F1 from cached matches."""
         valid_matches = [m for m in matches if m[2] >= 0.70]
@@ -609,18 +567,14 @@ class AsyncMedicalExtractionEvaluator:
                          val in enumerate(sorted(all_unique_values))}
 
         extracted_coded = [value_to_code[val] for val in extracted_values]
-        ground_truth_coded = [value_to_code[val]
-                              for val in ground_truth_values]
+        ground_truth_coded = [value_to_code[val] for val in ground_truth_values]
 
-        from sklearn.metrics import cohen_kappa_score
         kappa = cohen_kappa_score(ground_truth_coded, extracted_coded)
         return kappa
 
     def _calculate_field_counts(self, matches: List[Tuple], comparison_cache: Dict,
                                 extracted_records: List[Dict], ground_truth_records: List[Dict]) -> Dict:
         """Calculate field-level counts from cached comparison data."""
-        from collections import defaultdict
-
         field_counts = defaultdict(lambda: {
             'gt_count': 0,
             'extracted_count': 0,
@@ -707,9 +661,6 @@ class AsyncMedicalExtractionEvaluator:
             1 for r in extracted_records for f in self.required_fields if f in r)
         return present / total if total > 0 else 0.0
 
-    # ----------------------------
-    # Main Evaluation Methods
-    # ----------------------------
     async def evaluate_accuracy(self, extracted_records: List[Dict], ground_truth: List[Dict]) -> Dict:
         """
         Calculate all accuracy metrics.
@@ -765,9 +716,6 @@ class AsyncMedicalExtractionEvaluator:
         return self._calculate_field_counts(matches, comparison_cache, extracted_records, ground_truth_records)
 
 
-# ============================================================================
-# DSPy Optimizer Wrapper Function
-# ============================================================================
 def medical_extraction_metric_async(example, pred, trace=None,
                                     required_fields=None,
                                     semantic_fields=None,

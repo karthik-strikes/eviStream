@@ -25,8 +25,6 @@ class AsyncMedicalFileHandler:
         self.json_filename = json_filename
         self.schema_name = schema_name
         self.supabase_client = get_supabase_client()
-        print("Supabase Client:")
-        print(self.supabase_client)
 
     def _generate_output_filename(self, source_file_path: str) -> str:
         """Generate output filename from source filename."""
@@ -61,7 +59,6 @@ class AsyncMedicalFileHandler:
             output_path = output_dir / output_filename
 
             if output_path.exists() and not override:
-                # print(f"Output file already exists: {output_path}")
                 return None
 
             save_data = {
@@ -113,7 +110,6 @@ class AsyncMedicalFileHandler:
         matched_ext_indices = set()
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-        # Add matched pairs (TP) - FIXED: Process ground truth and extracted separately but consecutively
         for ext_idx, gt_idx, score in matches:
             if score >= 0.5:
                 matched_gt_indices.add(gt_idx)
@@ -255,7 +251,6 @@ class AsyncMedicalFileHandler:
                 schema_name=self.schema_name
             )
 
-        # print(f"Results saved to: {json_path}")
         return json_path
 
     async def run_and_save(self, pipeline, markdown_content: str, source_file_path: str,

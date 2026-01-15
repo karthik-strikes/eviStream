@@ -73,11 +73,6 @@ class WorkflowOrchestrator:
         self.human_review_handler = HumanReviewHandler(
             self.complete_task_workflow)
 
-    # ========================================================================
-    # WORKFLOW NODES - Complete Task Generation Pipeline
-    # ========================================================================
-
-    # Section: WORKFLOW_NODES
     def _node_decompose_form(
         self, state: CompleteTaskGenerationState
     ) -> CompleteTaskGenerationState:
@@ -159,24 +154,17 @@ class WorkflowOrchestrator:
             if not validation_results.get("pipeline_validation", {}).get("passed"):
                 print(f"    ⚠️  Pipeline structure issues detected!")
 
-            # CRITICAL: If this is the last attempt and we have missing fields, this is fatal
             if state["attempt"] >= state["max_attempts"] - 1:
                 has_missing_fields = any("Missing fields" in i for i in issues)
                 if has_missing_fields:
                     print(f"  ⚠️  WARNING: Last attempt with incomplete field coverage")
-                    state["errors"].append(
-                        "CRITICAL: Incomplete field coverage after maximum attempts"
-                    )
+                    state["errors"].append("CRITICAL: Incomplete field coverage after maximum attempts")
         else:
             state["decomposition_feedback"] = ""
             print(f"  ✓ Validation passed")
 
-            # Print summary of valid decomposition
             coverage = validation_results.get("field_coverage", {})
-            print(
-                f"    Fields covered: {coverage.get('fields_covered')}/{coverage.get('total_form_fields')}")
-            print(f"    DAG valid: ✓")
-            print(f"    Pipeline valid: ✓")
+            print(f"    Fields covered: {coverage.get('fields_covered')}/{coverage.get('total_form_fields')}, DAG valid: ✓, Pipeline valid: ✓")
 
         state["current_stage"] = "validation_complete"
         return state
@@ -195,11 +183,9 @@ class WorkflowOrchestrator:
         print(f"STAGE: Generating Atomic Signatures")
         print(f"{'='*70}")
 
-        # Initialize signatures_code to ensure it's always in state
         signatures_code = []
 
         try:
-            # NEW FORMAT: decomposition returns 'signatures' - generate ALL of them (no combiner)
             all_signatures = state["decomposition"].get("signatures", [])
 
             for idx, enriched_sig in enumerate(all_signatures, 1):
@@ -207,15 +193,12 @@ class WorkflowOrchestrator:
                 print(f"\n[{idx}/{len(all_signatures)}] {sig_name}")
 
                 try:
-                    # Pass enriched signature directly to generator
                     result = self.sig_gen.generate_signature(enriched_sig)
 
                     if result["is_valid"]:
                         class_name = sanitize_form_name(sig_name)
-                        # Get first output field name for module generation
                         fields = enriched_sig.get("fields", {})
-                        output_field = list(fields.keys())[
-                            0] if fields else "output"
+                        output_field = list(fields.keys())[0] if fields else "output"
 
                         signatures_code.append({
                             "signature_name": sig_name,
@@ -289,12 +272,10 @@ class WorkflowOrchestrator:
                 f"\n[{idx}/{len(state['signatures_code'])}] Module for {sig_name}")
 
             try:
-                # NEW FORMAT: Find corresponding enriched signature for fallback
                 all_sigs = state["decomposition"].get("signatures", [])
                 enriched_sig = next(
                     (s for s in all_sigs if s.get("name") == sig_name), {})
 
-                # Build fallback structure (handles both regular and array fields)
                 fallback = self.mod_gen.create_fallback_structure(enriched_sig)
 
                 result = self.mod_gen.generate_module(
@@ -333,9 +314,6 @@ class WorkflowOrchestrator:
         print(f"STAGE: Finalization")
         print(f"{'='*70}")
 
-        # Note: Field coverage and validation already verified in _node_validate_decomposition
-        # This node just assembles and saves the generated code
-
         try:
             # Check if we have all required components
             if not state.get("signatures_code"):
@@ -373,10 +351,7 @@ class WorkflowOrchestrator:
                     "signatures": len(state["signatures_code"]),
                     "modules": len(state["modules_code"]),
                     "pipeline_stages": len(state["decomposition"].get("pipeline", [])),
-                    "total_attempts": state["attempt"],
-                    # Legacy keys for backward compatibility
-                    "signatures_generated": len(state["signatures_code"]),
-                    "modules_generated": len(state["modules_code"])
+                    "total_attempts": state["attempt"]
                 }
             }
 
@@ -394,10 +369,6 @@ class WorkflowOrchestrator:
             print(f"✗ Finalization failed: {str(e)}")
 
         return state
-
-    # ========================================================================
-    # COMPLETE TASK WORKFLOW ROUTING
-    # ========================================================================
 
     def _route_after_decompose(self, state: CompleteTaskGenerationState) -> str:
         """Routing: After decomposition"""
@@ -428,10 +399,6 @@ class WorkflowOrchestrator:
             return "generate_modules"
         # Only skip modules if no signatures were generated at all
         return "finalize"
-
-    # ========================================================================
-    # BUILD WORKFLOW GRAPHS
-    # ========================================================================
 
     def _build_workflow_graph(self):
         """Build the LangGraph workflow"""
@@ -477,8 +444,6 @@ class WorkflowOrchestrator:
         )
 
         print("Workflow graph compiled successfully")
-
-    # Section: WORKFLOW_BUILDING
 
     def _build_complete_task_workflow(self):
         """Build the LangGraph workflow for complete task generation"""
@@ -542,10 +507,6 @@ class WorkflowOrchestrator:
             checkpointer=self.checkpointer,
             interrupt_before=interrupt_before
         )
-
-    # ========================================================================
-    # MAIN GENERATION METHODS
-    # ========================================================================
 
     def generate_complete_task(
         self,
@@ -775,10 +736,6 @@ class WorkflowOrchestrator:
             Result dict (may be paused again for another review)
         """
         return self.human_review_handler.reject_decomposition(feedback, thread_id)
-
-    # ========================================================================
-    # HELPER METHODS
-    # ========================================================================
 
 
 __all__ = ["WorkflowOrchestrator"]

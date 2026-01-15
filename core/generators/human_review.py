@@ -46,7 +46,7 @@ class HumanReviewHandler:
             Formatted summary string
         """
         decomp = state["decomposition"]
-        validation = state.get("validation_results", {})  # ✅ FIXED
+        validation = state.get("validation_results", {})
 
         summary = []
         summary.append("\n📋 DECOMPOSITION SUMMARY")
@@ -58,14 +58,13 @@ class HumanReviewHandler:
         summary.append(f"\n📄 Form: {form_name}")
         summary.append(f"   Total Fields: {total_fields}")
 
-        # Signatures (✅ FIXED - using new format)
         signatures = decomp.get("signatures", [])
         summary.append(f"\n🔹 Signatures: {len(signatures)}")
 
         for i, sig in enumerate(signatures, 1):
-            sig_name = sig.get("name", f"Signature{i}")  # ✅ FIXED
-            fields = list(sig.get("fields", {}).keys())  # ✅ FIXED
-            depends_on = sig.get("depends_on", [])  # ✅ FIXED
+            sig_name = sig.get("name", f"Signature{i}")
+            fields = list(sig.get("fields", {}).keys())
+            depends_on = sig.get("depends_on", [])
 
             summary.append(f"\n  {i}. {sig_name}")
             summary.append(f"     Fields ({len(fields)}): {', '.join(fields[:5])}" +
@@ -75,7 +74,6 @@ class HumanReviewHandler:
                 summary.append(f"     Depends on: {', '.join(depends_on[:5])}" +
                                (f" (+{len(depends_on)-5} more)" if len(depends_on) > 5 else ""))
 
-        # Pipeline stages (✅ FIXED - using new format)
         pipeline = decomp.get("pipeline", [])
         summary.append(f"\n🔄 Pipeline: {len(pipeline)} stages")
 
@@ -90,13 +88,11 @@ class HumanReviewHandler:
             if waits_for:
                 summary.append(f"    Waits for: Stage {waits_for}")
 
-        # Field coverage (✅ FIXED)
         field_coverage = decomp.get("field_coverage", {})
         summary.append(f"\n📊 Field Coverage:")
         summary.append(
             f"   Total: {len(field_coverage)}/{total_fields} fields mapped")
 
-        # Validation results (✅ FIXED)
         summary.append(f"\n✅ Validation Results:")
 
         if validation.get("passed"):
@@ -219,7 +215,6 @@ class HumanReviewHandler:
         print(
             f"✓ Retrieved state from Supabase with keys: {list(saved_state.keys())}")
 
-        # ISSUE #3 FIX: Use deepcopy to preserve all nested structures
         updated_state = copy.deepcopy(saved_state)
 
         # Set approval flags
@@ -257,10 +252,8 @@ class HumanReviewHandler:
                 "error": "No state found for thread_id"
             }
 
-        # ISSUE #8 FIX: Include validation results in feedback
         enriched_feedback = feedback
 
-        # ISSUE #5 FIX: Check if max attempts reached
         current_attempt = current_state.values.get("attempt", 0)
         max_attempts = current_state.values.get("max_attempts", 3)
 
@@ -285,8 +278,6 @@ class HumanReviewHandler:
                 missing_fields = field_coverage.get("missing_fields", [])
                 enriched_feedback += f"\n\n=== Missing Fields ===\n{', '.join(missing_fields)}"
 
-        # ISSUE #3 FIX: Use deepcopy to preserve all nested structures
-        # ISSUE #4 FIX: NO attempt increment here (refine node handles it)
         updated_state = copy.deepcopy(current_state.values)
 
         # Debug: Verify critical keys
@@ -306,9 +297,7 @@ class HumanReviewHandler:
         updated_state["human_approved"] = False
         updated_state["human_feedback"] = enriched_feedback
         updated_state["decomposition_feedback"] = enriched_feedback
-        # NOTE: NOT incrementing attempt here - refine node will do it
 
-        # Resume workflow (will go to refine node which increments attempt)
         return self._resume_workflow_with_state(updated_state, config)
 
     def _resume_workflow_with_state(self, updated_state: Dict[str, Any], config: dict) -> Dict[str, Any]:
@@ -393,12 +382,8 @@ class HumanReviewHandler:
             Next node name
         """
         if state.get("human_approved", False):
-            # ISSUE #1 & #6 FIX: Approved - continue to next stage
             return "generate_atomic_signatures"
-        else:
-            # ISSUE #1 & #2 FIX: Rejected - route to refine node (not "decompose_form")
-            # The refine node will increment attempt counter and then route back to decompose
-            return "refine"
+        return "refine"
 
 
 __all__ = ["HumanReviewHandler"]

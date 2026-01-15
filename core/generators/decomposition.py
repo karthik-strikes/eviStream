@@ -118,15 +118,7 @@ def _execute_stage1(model, stage1_prompt: str, max_retries: int = 3) -> Stage1Ou
 
 
 def _build_field_coverage(signatures: List[Signature]) -> Dict[str, str]:
-    """
-    Build field_name -> signature_name mapping from signatures.
-
-    Args:
-        signatures: List of Signature objects
-
-    Returns:
-        Dict mapping field_name to signature_name
-    """
+    """Build field_name -> signature_name mapping from signatures."""
     logger.info("Building field coverage map...")
     field_coverage = {}
 
@@ -134,7 +126,7 @@ def _build_field_coverage(signatures: List[Signature]) -> Dict[str, str]:
         for field_name in sig.field_names:
             field_coverage[field_name] = sig.name
 
-    logger.info(f"  Field coverage: {len(field_coverage)} fields mapped")
+    logger.info(f"Field coverage: {len(field_coverage)} fields mapped")
     return field_coverage
 
 
@@ -206,12 +198,11 @@ def _auto_generate_pipeline(signatures: List[Dict[str, Any]]) -> List[Dict[str, 
     """
     logger.info("Auto-generating pipeline from dependencies...")
 
-    # Separate independent and dependent signatures
     independent = [sig for sig in signatures if not sig["depends_on"]]
     dependent = [sig for sig in signatures if sig["depends_on"]]
 
     pipeline = []
-    stage_outputs = {}  # Track which stage produces which fields
+    stage_outputs = {}
 
     # Stage 1: Independent signatures (run in parallel)
     if independent:
@@ -258,12 +249,8 @@ def _auto_generate_pipeline(signatures: List[Dict[str, Any]]) -> List[Dict[str, 
                 ready_signatures.append(sig)
 
         if not ready_signatures:
-            # Safety check - should not happen with valid dependencies
-            logger.error(
-                f"Cannot satisfy dependencies for remaining signatures: {[s['name'] for s in remaining]}")
+            logger.error(f"Cannot satisfy dependencies for remaining signatures: {[s['name'] for s in remaining]}")
             break
-
-        # Determine execution mode and waits_for_stage
         if len(ready_signatures) == 1:
             execution = "sequential"
         else:
@@ -308,21 +295,17 @@ def _auto_generate_pipeline(signatures: List[Dict[str, Any]]) -> List[Dict[str, 
             "waits_for_stage": max_dependency_stage
         })
 
-        # Track this stage's outputs
         stage_outputs[current_stage] = set(stage_fields)
 
-        # Remove processed signatures
         for sig in ready_signatures:
             remaining.remove(sig)
 
         current_stage += 1
 
-    logger.info(f"  Generated {len(pipeline)} pipeline stages")
+    logger.info(f"Generated {len(pipeline)} pipeline stages")
 
-    # Log pipeline structure for debugging
     for stage in pipeline:
-        logger.info(
-            f"    Stage {stage['stage']}: {stage['signatures']} ({stage['execution']})")
+        logger.info(f"  Stage {stage['stage']}: {stage['signatures']} ({stage['execution']})")
 
     return pipeline
 
@@ -351,11 +334,7 @@ def decompose_form(
             "field_coverage": {...}        # Field name -> signature name mapping
         }
     """
-    logger.info("Starting form decomposition...")
-    logger.info(f"  Model: {model_name}")
-    logger.info(f"  Max retries: {max_retries}")
-    max_retries = 5
-    model_name = "anthropic:claude-sonnet-4-5-20250929"
+    logger.info(f"Starting form decomposition with model: {model_name}, max retries: {max_retries}")
     model = get_langchain_model(model_name, temperature=0.2, max_tokens=20000)
 
     # Decomposition: LLM generates field groupings
@@ -384,12 +363,6 @@ def decompose_form(
         "pipeline": pipeline,
         "field_coverage": field_coverage,
     }
-
-    # print("\n" + "="*80)
-    # print("FINAL DECOMPOSITION")
-    # print("="*80)
-    # print(json.dumps(decomposition, indent=2, ensure_ascii=False))
-    # print("="*80 + "\n")
 
     return decomposition
 

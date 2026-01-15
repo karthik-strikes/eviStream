@@ -168,17 +168,14 @@ class SignatureGenerator:
                 )
                 code = self._generate_code_from_spec(spec)
 
-                # Print generated code for debugging (first attempt only)
                 if attempt == 0:
                     print("\n--- Generated Signature Code ---")
                     print(code)
-                    print("--- End of Generated Code ---\n")
+                    print("---\n")
 
                 # Validate syntax and structure
                 is_valid, errors = self.validator.validate_signature(code)
 
-                # Validate field metadata compliance
-                # Convert enriched_sig to questionnaire_spec format for validator
                 questionnaire_spec = {
                     "fields_handled": list(enriched_sig.get("fields", {}).keys()),
                     "output_structure": enriched_sig.get("fields", {})
@@ -196,13 +193,11 @@ class SignatureGenerator:
                         "is_valid": True,
                         "attempts": attempt + 1,
                         "errors": [],
-                        "warnings": all_warnings,  # May have warnings even if valid
+                        "warnings": all_warnings,
                     }
 
-                # Not valid, prepare feedback for retry
-                print(
-                    f"  [Attempt {attempt + 1}/{max_attempts}] Validation failed:")
-                for error in errors[:3]:  # Show first 3 errors
+                print(f"  [Attempt {attempt + 1}/{max_attempts}] Validation failed:")
+                for error in errors[:3]:
                     print(f"     • {error}")
                 validation_feedback = "\n".join(errors)
 
@@ -218,10 +213,7 @@ class SignatureGenerator:
                         "attempts": attempt + 1,
                         "errors": [error_msg],
                     }
-                # Continue to next attempt
                 continue
-
-        # Max attempts reached
         return {
             "code": code if 'code' in locals() else "",
             "is_valid": False,

@@ -30,9 +30,6 @@ def sample_json_records(target_file: str, max_samples: int = 5) -> str:
     return json.dumps(sample_records, indent=2)
 
 
-# DSPy Signature for Auto-Extracting Fields from Schema
-
-
 def extract_fields_from_signature(signature_class, target_file: str, output_field_name: str, verbose: bool = True) -> Tuple[List[str], List[str], List[str], Dict]:
     """
     Use DSPy to automatically extract and classify fields from a signature.
@@ -62,40 +59,18 @@ def extract_fields_from_signature(signature_class, target_file: str, output_fiel
         result.groupable_field_patterns, fallback={})
 
     if verbose:
-        print(f"\n{'='*70}")
-        print(f"AUTO-EXTRACTED FIELDS FROM SIGNATURE")
-        print(f"{'='*70}")
-        print(f"\n📋 Total Fields: {len(required_fields)}")
-        print(f"🔤 Semantic Fields: {len(semantic_fields)}")
-        print(f"🎯 Exact Fields: {len(exact_fields)}")
-        print(f"🔄 Groupable Patterns: {len(groupable_patterns)}")
+        print(f"\nAUTO-EXTRACTED FIELDS FROM SIGNATURE")
+        print(f"Total Fields: {len(required_fields)}, Semantic: {len(semantic_fields)}, Exact: {len(exact_fields)}, Groupable: {len(groupable_patterns)}")
 
-        # Validate
         all_defined = set(semantic_fields) | set(exact_fields)
         required_set = set(required_fields)
 
         if all_defined != required_set:
-            print(f"\n⚠️  VALIDATION WARNING:")
             missing = required_set - all_defined
             extra = all_defined - required_set
             if missing:
-                print(f"   Missing from semantic/exact: {missing}")
+                print(f"WARNING: Missing from semantic/exact: {missing}")
             if extra:
-                print(f"   Extra in semantic/exact: {extra}")
-
-        if groupable_patterns:
-            print(f"\n🔄 Detected Groupable Patterns:")
-            for group_name, config in groupable_patterns.items():
-                print(f"   • {group_name}: {config.get('pattern', 'N/A')}")
-                print(
-                    f"     - Key fields for matching: {config.get('key_matching_fields', [])}")
-                print(f"     - Max index: {config.get('max_index', 'N/A')}")
-
-        print(f"{'='*70}\n")
-
-    print("Required fields: ", len(required_fields))
-    print("Semantic fields: ", len(semantic_fields))
-    print("Exact fields: ", len(exact_fields))
-    print("Groupable patterns: ", len(groupable_patterns))
+                print(f"WARNING: Extra in semantic/exact: {extra}")
 
     return required_fields, semantic_fields, exact_fields, groupable_patterns
